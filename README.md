@@ -41,7 +41,7 @@ Now we want to add all numbers from 1 to 10,000 to this newly created collection
  // Execute parallel for each container: Add 10000 to each object's value.
  await collection.ExecuteLambda(x => x.Value += 10000);
  ```
-We then would like to transfer these results back to the Orleans client. So we create an IBatchConsumer<DummyInt> and make it addressable to Orleans in line 2. We then tell the collection to output all contents to our IBatchConsumer.
+We then would like to transfer these results back to the Orleans client. So we create a `MultiStreamListConsumer<ContainerHostedElement<DummyInt>>` and make it addressable to Orleans in line 2. We then tell the collection to enumerate all items to its output stream.
 ```cs
 // Create consumer for the resulting data.
 var consumer = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(provider);
