@@ -21,14 +21,6 @@ namespace CollectionHost
         {
             var provider = GetStreamProvider("CollectionStreamProvider");
 
-            // remove
-
-            var l = Enumerable.Range(1, 10).Select(x => new DummyInt(x)).ToList();
-
-            var c = GrainClient.GrainFactory.GetGrain<IContainerNodeGrain<DummyInt>>(Guid.NewGuid());
-            var co = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(provider);
-            await co.SetInput(new List<TransactionalStreamIdentity<ContainerHostedElement<DummyInt>>>() { await c.GetStreamIdentity() });
-
             // Simple collection sample
             var container = GrainClient.GrainFactory.GetGrain<IContainerGrain<DummyInt>>(Guid.NewGuid());
             await container.SetNumberOfNodes(4);
