@@ -1,0 +1,5 @@
+build:
+  project: Orleans.Collections.sln
+
+before_build:
+  cmd: nuget restore Orleans.Collections.sln

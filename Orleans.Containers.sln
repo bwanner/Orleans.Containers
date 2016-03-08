@@ -1,0 +1,53 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orleans.Containers", "Orleans.Containers\Orleans.Containers.csproj", "{F1300194-ADC9-4569-8FFE-4029E6F80AB1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample", "Sample\Sample.csproj", "{C080D36F-96A8-4795-8984-F7F97436FBB2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orleans.Containers.Test", "Orleans.Containers.Test\Orleans.Containers.Test.csproj", "{75CC9A20-0930-4F67-A9E5-E2B87D39E7AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orleans.Streams", "Orleans.Streams\Orleans.Streams.csproj", "{DFA07001-2EA7-4542-B81F-3E921CD82E0C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FE3310B1-D713-4662-A348-37B130D9F44B}"
+	ProjectSection(SolutionItems) = preProject
+		AppVeyor.yml = AppVeyor.yml
+		LICENSE = LICENSE
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestGrains", "TestGrains\TestGrains.csproj", "{CDD8F5F0-29F0-4CC1-802B-671DB70FB156}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F1300194-ADC9-4569-8FFE-4029E6F80AB1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1300194-ADC9-4569-8FFE-4029E6F80AB1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1300194-ADC9-4569-8FFE-4029E6F80AB1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1300194-ADC9-4569-8FFE-4029E6F80AB1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C080D36F-96A8-4795-8984-F7F97436FBB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C080D36F-96A8-4795-8984-F7F97436FBB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C080D36F-96A8-4795-8984-F7F97436FBB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C080D36F-96A8-4795-8984-F7F97436FBB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75CC9A20-0930-4F67-A9E5-E2B87D39E7AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75CC9A20-0930-4F67-A9E5-E2B87D39E7AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75CC9A20-0930-4F67-A9E5-E2B87D39E7AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75CC9A20-0930-4F67-A9E5-E2B87D39E7AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFA07001-2EA7-4542-B81F-3E921CD82E0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFA07001-2EA7-4542-B81F-3E921CD82E0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFA07001-2EA7-4542-B81F-3E921CD82E0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFA07001-2EA7-4542-B81F-3E921CD82E0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDD8F5F0-29F0-4CC1-802B-671DB70FB156}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDD8F5F0-29F0-4CC1-802B-671DB70FB156}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDD8F5F0-29F0-4CC1-802B-671DB70FB156}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDD8F5F0-29F0-4CC1-802B-671DB70FB156}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

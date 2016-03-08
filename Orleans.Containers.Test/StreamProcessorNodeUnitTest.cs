@@ -1,0 +1,193 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Orleans.Collections.Test.Helpers;
+using Orleans.Streams;
+using Orleans.Streams.Endpoints;
+using Orleans.Streams.Linq.Aggregates;
+using Orleans.TestingHost;
+
+namespace Orleans.Collections.Test
+{
+    [TestClass]
+    public class StreamProcessorNodeUnitTest : TestingSiloHost
+    {
+        private const string StreamProvider = "CollectionStreamProvider";
+
+        [ClassCleanup]
+        public static void ClassCleanup()
+        {
+            // Optional. 
+            // By default, the next test class which uses TestignSiloHost will
+            // cause a fresh Orleans silo environment to be created.
+            StopAllSilos();
+        }
+
+        [TestMethod]
+        public async Task TestTransactionNoItems()
+        {
+            var processorNodeGuid = Guid.NewGuid();
+
+            var processor = GrainClient.GrainFactory.GetGrain<IStreamProcessorSelectNodeGrain<int, int>>(processorNodeGuid);
+
+            await processor.SetFunction(_ => _);
+
+            var provider = GrainClient.GetStreamProvider(StreamProvider);
+            var testProvider = new SingleStreamProvider<int>(provider);
+            await SubscribeConsumer(testProvider, processor);
+
+            var testConsumer = new MultiStreamListConsumer<int>(provider);
+
+            await SubscribeConsumer(processor, testConsumer);
+
+            Task waitForTransaction = testConsumer.TransactionComplete(1);
+            await testProvider.SendItems(new List<int>(), true, 1);
+
+            await waitForTransaction;
+
+            await testProvider.TearDown();
+        }
+
+        [TestMethod]
+        public async Task TestItemTransfer()
+        {
+            var processorNodeGuid = Guid.NewGuid();
+            var processor = GrainClient.GrainFactory.GetGrain<IStreamProcessorSelectNodeGrain<int, int>>(processorNodeGuid);
+            await processor.SetFunction(_ => _);
+
+            var itemsToSend = new List<int> {-1, 5, 30};
+
+
+            var provider = GrainClient.GetStreamProvider(StreamProvider);
+            var testProvider = new SingleStreamProvider<int>(provider);
+            await SubscribeConsumer(testProvider, processor);
+
+            var testConsumer = new MultiStreamListConsumer<int>(provider);
+            await SubscribeConsumer(processor, testConsumer);
+
+            var waitForTransaction = testConsumer.TransactionComplete(1);
+            await testProvider.SendItems(itemsToSend, true, 1);
+
+            await waitForTransaction;
+
+            CollectionAssert.AreEquivalent(itemsToSend, testConsumer.Items);
+
+            await testProvider.TearDown();
+        }
+
+        private async Task SubscribeConsumer(IStreamProcessorSelectNodeGrain<int, int> processor, MultiStreamListConsumer<int> testConsumer)
+        {
+            await testConsumer.SetInput(new List<TransactionalStreamIdentity<int>>() {await processor.GetStreamIdentity()});
+        }
+
+        [TestMethod]
+        public async Task TestItemAggregation()
+        {
+            var aggregate = GrainClient.GrainFactory.GetGrain<IStreamProcessorSelectAggregate<int, int>>(Guid.NewGuid());
+            await aggregate.SetFunction(_ => _);
+
+            var itemsToSend = new List<int> {1, 5, 32, -12};
+
+            var provider = GrainClient.GetStreamProvider(StreamProvider);
+            var inputAggregate = new MultiStreamProvider<int>(provider, 2);
+
+            await aggregate.SetInput(await inputAggregate.GetStreamIdentities());
+
+            Assert.AreEqual(2, (await aggregate.GetStreamIdentities()).Count);
+
+            var consumerAggregate = new TestTransactionalStreamConsumerAggregate<int>(provider);
+            await consumerAggregate.SetInput(await aggregate.GetStreamIdentities());
+
+            var tid = await inputAggregate.SendItems(itemsToSend);
+            var waitForTransaction = consumerAggregate.TransactionComplete(tid);
+
+            var resultItems = consumerAggregate.Items;
+
+            Assert.AreEqual(4, resultItems.Count);
+            CollectionAssert.AreEquivalent(itemsToSend, resultItems);
+
+            Assert.IsFalse(await consumerAggregate.AllConsumersTearDownCalled());
+            await inputAggregate.TearDown();
+            Assert.IsTrue(await consumerAggregate.AllConsumersTearDownCalled());
+        }
+
+        /// <summary>
+        ///     Validates that no data flows along the chain of streams. Subscription removed is only checked for client
+        ///     implementation.
+        /// </summary>
+        /// <returns></returns>
+        [TestMethod]
+        public async Task TestAggregateCleanupSuccessful()
+        {
+            var aggregate = GrainClient.GrainFactory.GetGrain<IStreamProcessorSelectAggregate<int, int>>(Guid.NewGuid());
+            await aggregate.SetFunction(_ => _);
+
+            var itemsToSend = new List<int> {1, 5, 32, -12};
+
+            var provider = GrainClient.GetStreamProvider(StreamProvider);
+            var inputAggregate = new MultiStreamProvider<int>(provider, 2); ;
+
+            await aggregate.SetInput(await inputAggregate.GetStreamIdentities());
+
+            var streamIdentitiesProcessor = await aggregate.GetStreamIdentities();
+            Assert.AreEqual(2, (await aggregate.GetStreamIdentities()).Count);
+
+            var consumerAggregate = new TestTransactionalStreamConsumerAggregate<int>(provider);
+            await consumerAggregate.SetInput(await aggregate.GetStreamIdentities());
+
+            var subscriptionHdl1 = await GetStreamSubscriptionHandles<StreamTransaction>(streamIdentitiesProcessor[0].TransactionStreamIdentifier);
+            var subscriptionHdl2 = await GetStreamSubscriptionHandles<StreamTransaction>(streamIdentitiesProcessor[1].TransactionStreamIdentifier);
+            var subscriptionHdl3 = await GetStreamSubscriptionHandles<IEnumerable<int>>(streamIdentitiesProcessor[0].ItemBatchStreamIdentifier);
+            var subscriptionHdl4 = await GetStreamSubscriptionHandles<IEnumerable<int>>(streamIdentitiesProcessor[1].ItemBatchStreamIdentifier);
+
+            Assert.AreEqual(1, subscriptionHdl1.Count);
+            Assert.AreEqual(1, subscriptionHdl2.Count);
+            Assert.AreEqual(1, subscriptionHdl3.Count);
+            Assert.AreEqual(1, subscriptionHdl4.Count);
+
+            await inputAggregate.TearDown();
+
+            var tid = await inputAggregate.SendItems(itemsToSend);
+
+            var taskCompleted = consumerAggregate.TransactionComplete(tid).Wait(TimeSpan.FromSeconds(5));
+
+            Assert.IsFalse(taskCompleted);
+
+            subscriptionHdl1 = await GetStreamSubscriptionHandles<StreamTransaction>(streamIdentitiesProcessor[0].TransactionStreamIdentifier);
+            subscriptionHdl2 = await GetStreamSubscriptionHandles<StreamTransaction>(streamIdentitiesProcessor[1].TransactionStreamIdentifier);
+            subscriptionHdl3 = await GetStreamSubscriptionHandles<IEnumerable<int>>(streamIdentitiesProcessor[0].ItemBatchStreamIdentifier);
+            subscriptionHdl4 = await GetStreamSubscriptionHandles<IEnumerable<int>>(streamIdentitiesProcessor[1].ItemBatchStreamIdentifier);
+
+            Assert.AreEqual(0, subscriptionHdl1.Count);
+            Assert.AreEqual(0, subscriptionHdl2.Count);
+            Assert.AreEqual(0, subscriptionHdl3.Count);
+            Assert.AreEqual(0, subscriptionHdl4.Count);
+        }
+
+        private IContainerGrain<T> GetRandomDistributedCollection<T>()
+        {
+            var grain = GrainFactory.GetGrain<IContainerGrain<T>>(Guid.NewGuid());
+
+            return grain;
+        }
+
+        private async Task SubscribeConsumer<T>(ITransactionalStreamProvider<T> provider,
+            ITransactionalStreamConsumer<T> consumer)
+        {
+            var streamIdentities = await provider.GetStreamIdentity();
+            await consumer.SetInput(streamIdentities);
+        }
+
+
+        private async Task<IList<StreamSubscriptionHandle<T>>> GetStreamSubscriptionHandles<T>(Tuple<Guid, string> identifier)
+        {
+            var result = await GrainClient.GetStreamProvider(StreamProvider)
+                .GetStream<T>(identifier.Item1, identifier.Item2)
+                .GetAllSubscriptionHandles();
+
+            return result;
+        }
+    }
+}
