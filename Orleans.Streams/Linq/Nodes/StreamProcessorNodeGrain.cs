@@ -4,7 +4,7 @@ using Orleans.Streams.Endpoints;
 
 namespace Orleans.Streams.Linq.Nodes
 {
-    internal abstract class StreamProcessorNodeGrain<TIn, TOut> : Grain, IStreamProcessorNodeGrain<TIn, TOut>
+    public abstract class StreamProcessorNodeGrain<TIn, TOut> : Grain, IStreamProcessorNodeGrain<TIn, TOut>
     {
         private const string StreamProviderNamespace = "CollectionStreamProvider";
         private SingleStreamConsumer<TIn> _streamConsumer;
@@ -25,7 +25,7 @@ namespace Orleans.Streams.Linq.Nodes
             return await StreamProvider.GetStreamIdentity();
         }
 
-        public async Task TearDown()
+        public virtual async Task TearDown()
         {
             if (_streamConsumer != null)
             {

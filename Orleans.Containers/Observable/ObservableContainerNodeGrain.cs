@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Orleans.Collections.Observable
 {
-    internal class ObservableContainerNodeGrain<T> : ContainerNodeGrain<T>, IObservableContainerNodeGrain<T>
+    public class ObservableContainerNodeGrain<T> : ContainerNodeGrain<T>, IObservableContainerNodeGrain<T>
     {
         public override async Task OnActivateAsync()
         {
@@ -57,6 +57,12 @@ namespace Orleans.Collections.Observable
             await StreamProvider.SendItems(removeArgs);
 
             return true;
+        }
+
+        private void Foo()
+        {
+            var t = new Task(async () => await HandleCollectionChange(null, null));
+            t.RunSynchronously();
         }
 
         private async Task HandleCollectionChange(object sender, NotifyCollectionChangedEventArgs e)

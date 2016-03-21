@@ -55,10 +55,10 @@ await consumer.TransactionComplete(transactionId); // await the transaction.
 This example creates a container consisting of 4 nodes. The `DummyInt` objects hosted in that container are then mapped to integers and are filtered for being `> 500`.
 The whole processing happens in 4 lanes in parallel:
 
-*ContainerNodeGrain1 -> StreamProcessorSelect1 -> StreamProcessorWhere1 -> StreamConsumer
-ContainerNodeGrain2 -> StreamProcessorSelect2 -> StreamProcessorWhere2 -> StreamConsumer
-ContainerNodeGrain3 -> StreamProcessorSelect3 -> StreamProcessorWhere3 -> StreamConsumer
-ContainerNodeGrain4 -> StreamProcessorSelect4 -> StreamProcessorWhere4 -> StreamConsumer*
+*ContainerNodeGrain1 -> StreamProcessorSelect1 -> StreamProcessorWhere1 -> StreamConsumer*
+*ContainerNodeGrain2 -> StreamProcessorSelect2 -> StreamProcessorWhere2 -> StreamConsumer*
+*ContainerNodeGrain3 -> StreamProcessorSelect3 -> StreamProcessorWhere3 -> StreamConsumer*
+*ContainerNodeGrain4 -> StreamProcessorSelect4 -> StreamProcessorWhere4 -> StreamConsumer*
 
 ```cs
 var collection = GrainClient.GrainFactory.GetGrain<IObservableContainerGrain<DummyInt>>(Guid.NewGuid());
@@ -128,7 +128,6 @@ Checkout this project, open in Visual Studio and execute project "Sample".
 ## Backlog
 
 *	 Support communication between items in one distributed collection. (To be tested, possible issue: reentrancy)
-*	 Make collections observable similar to INotifyCollectionChanged
-*	 Support for linq-like queries
-*	 Container balancing / refresh
+*	 Extend support for LINQ queries.
+*	 Container balancing / refresh.
 * Nice to have: Add support for generic methods in Orleans

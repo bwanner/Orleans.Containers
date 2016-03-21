@@ -11,7 +11,7 @@ namespace Orleans.Collections
     /// <summary>
     ///     Implementation of a containerNode grain.
     /// </summary>
-    internal class ContainerNodeGrain<T> : Grain, IContainerNodeGrain<T>
+    public class ContainerNodeGrain<T> : Grain, IContainerNodeGrain<T>
     {
         protected IList<T> Collection;
         protected SingleStreamProvider<ContainerHostedElement<T>> StreamProvider;
