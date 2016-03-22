@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Orleans.Collections.Utilities;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;
+using Orleans.Streams.Messages;
 
 namespace Orleans.Collections
 {
@@ -90,7 +91,7 @@ namespace Orleans.Collections
         {
             Collection = new List<T>();
             StreamProvider = new SingleStreamProvider<ContainerHostedElement<T>>(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
-            _streamConsumer = new SingleStreamConsumer<T>(GetStreamProvider(StreamProviderName), InternalAddItems, null, TearDown);
+            _streamConsumer = new SingleStreamConsumer<T>(GetStreamProvider(StreamProviderName), this, TearDown);
             await base.OnActivateAsync();
         }
 
@@ -121,12 +122,12 @@ namespace Orleans.Collections
                 this.AsReference<IContainerNodeGrain<T>>(), exists);
         }
 
-        public async Task<TransactionalStreamIdentity<ContainerHostedElement<T>>> GetStreamIdentity()
+        public async Task<StreamIdentity<ContainerHostedElement<T>>> GetStreamIdentity()
         {
             return await StreamProvider.GetStreamIdentity();
         }
 
-        public async Task SetInput(TransactionalStreamIdentity<T> inputStream)
+        public async Task SetInput(StreamIdentity<T> inputStream)
         {
             await _streamConsumer.SetInput(inputStream);
         }
@@ -254,6 +255,16 @@ namespace Orleans.Collections
             var curItem = GetItemAt(reference.Offset);
             var result = await func(curItem, state);
             return result;
+        }
+
+        public async Task Visit(ItemMessage<T> message)
+        {
+            await InternalAddItems(message.Items);
+        }
+
+        public Task Visit(TransactionMessage transactionMessage)
+        {
+            return TaskDone.Done;
         }
     }
 }

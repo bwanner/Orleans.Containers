@@ -15,7 +15,7 @@ namespace Orleans.Streams.Linq.Aggregates
             return TaskDone.Done;
         }
 
-        protected override async Task<IStreamProcessorNodeGrain<TIn, TIn>> InitializeNode(TransactionalStreamIdentity<TIn> identity)
+        protected override async Task<IStreamProcessorNodeGrain<TIn, TIn>> InitializeNode(StreamIdentity<TIn> identity)
         {
             var node = GrainFactory.GetGrain<IStreamProcessorWhereNodeGrain<TIn>>(Guid.NewGuid());
             await node.SetFunction(_functionTemplate);

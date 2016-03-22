@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
 {
@@ -9,13 +10,13 @@ namespace Orleans.Streams.Endpoints
     /// Consumes items from multiple streams.
     /// </summary>
     /// <typeparam name="T">Type of items to consume.</typeparam>
-    public class MultiStreamConsumer<T> : ITransactionalStreamConsumerAggregate<T>
+    public class MultiStreamConsumer<T> : ITransactionalStreamConsumerAggregate<T>, IStreamMessageVisitor<T>
     {
         private readonly IStreamProvider _streamProvider;
         protected readonly List<SingleStreamConsumer<T>> Consumers;
         private bool _tearDownExecuted;
         protected Func<IEnumerable<T>, Task> StreamItemBatchReceivedFunc;
-        protected Func<StreamTransaction, Task> StreamTransactionReceivedFunc;
+        protected Func<TransactionMessage, Task> StreamTransactionReceivedFunc;
 
         /// <summary>
         /// Constructor.
@@ -24,7 +25,7 @@ namespace Orleans.Streams.Endpoints
         /// <param name="streamItemBatchReceivedFunc">Asynchronous function to be executed when an item is received.</param>
         /// <param name="streamTransactionReceivedFunc">Asynchronous function to be executed when a transaction message is received.</param>
         public MultiStreamConsumer(IStreamProvider streamProvider, Func<IEnumerable<T>, Task> streamItemBatchReceivedFunc,
-            Func<StreamTransaction, Task> streamTransactionReceivedFunc = null)
+            Func<TransactionMessage, Task> streamTransactionReceivedFunc = null)
         {
             Consumers = new List<SingleStreamConsumer<T>>();
             _streamProvider = streamProvider;
@@ -39,7 +40,7 @@ namespace Orleans.Streams.Endpoints
         /// <param name="streamItemBatchReceivedAction">Action to be executed when an item is received.</param>
         /// <param name="streamTransactionReceivedAction">Action to be executed when a transaction message is received.</param>
         public MultiStreamConsumer(IStreamProvider streamProvider, Action<IEnumerable<T>> streamItemBatchReceivedAction = null,
-            Action<StreamTransaction> streamTransactionReceivedAction = null)
+            Action<TransactionMessage> streamTransactionReceivedAction = null)
         {
             Consumers = new List<SingleStreamConsumer<T>>();
             _streamProvider = streamProvider;
@@ -64,12 +65,12 @@ namespace Orleans.Streams.Endpoints
             ;
         }
 
-        public async Task SetInput(IEnumerable<TransactionalStreamIdentity<T>> streamIdentities)
+        public async Task SetInput(IEnumerable<StreamIdentity<T>> streamIdentities)
         {
             _tearDownExecuted = false;
             foreach (var identity in streamIdentities)
             {
-                var consumer = new SingleStreamConsumer<T>(_streamProvider, StreamItemBatchReceivedFunc, StreamTransactionReceivedFunc);
+                var consumer = new SingleStreamConsumer<T>(_streamProvider, this);
 
                 await consumer.SetInput(identity);
 
@@ -100,6 +101,22 @@ namespace Orleans.Streams.Endpoints
         {
             await Task.WhenAll(Consumers.Select(c => c.TearDown()));
             _tearDownExecuted = true;
+        }
+
+        public async Task Visit(ItemMessage<T> message)
+        {
+            if (StreamItemBatchReceivedFunc != null)
+            {
+                await StreamItemBatchReceivedFunc(message.Items);
+            }
+        }
+
+        public async Task Visit(TransactionMessage transactionMessage)
+        {
+            if (StreamTransactionReceivedFunc != null)
+            {
+                await StreamTransactionReceivedFunc(transactionMessage);
+            }
         }
     }
 }

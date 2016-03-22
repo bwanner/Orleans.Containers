@@ -9,7 +9,7 @@ namespace Orleans.Streams.Linq.Aggregates
     {
         protected List<IStreamProcessorNodeGrain<TIn, TOut>> ProcessorNodes;
 
-        public async Task SetInput(IEnumerable<TransactionalStreamIdentity<TIn>> streamIdentities)
+        public async Task SetInput(IEnumerable<StreamIdentity<TIn>> streamIdentities)
         {
             ProcessorNodes = new List<IStreamProcessorNodeGrain<TIn, TOut>>();
             foreach (var identity in streamIdentities)
@@ -25,9 +25,9 @@ namespace Orleans.Streams.Linq.Aggregates
             await Task.WhenAll(ProcessorNodes.Select(p => p.TransactionComplete(transactionId)));
         }
 
-        protected abstract Task<IStreamProcessorNodeGrain<TIn, TOut>> InitializeNode(TransactionalStreamIdentity<TIn> identity);
+        protected abstract Task<IStreamProcessorNodeGrain<TIn, TOut>> InitializeNode(StreamIdentity<TIn> identity);
         
-        public async Task<IList<TransactionalStreamIdentity<TOut>>> GetStreamIdentities()
+        public async Task<IList<StreamIdentity<TOut>>> GetStreamIdentities()
         {
             var result = await Task.WhenAll(ProcessorNodes.Select(n => n.GetStreamIdentity()));
 

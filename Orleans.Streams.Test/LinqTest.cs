@@ -1,19 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
-using Orleans.Collections.Test.Helpers;
-using Orleans.Collections.Utilities;
-using Orleans.Streams;
+using Orleans.Runtime;
 using Orleans.Streams.Endpoints;
 using Orleans.Streams.Linq;
-using Orleans.Streams.Linq.Aggregates;
+using Orleans.Streams.Test.Helpers;
 using Orleans.TestingHost;
 
-namespace Orleans.Collections.Test
+namespace Orleans.Streams.Test
 {
     [TestClass]
     public class LinqTest : TestingSiloHost
@@ -42,7 +38,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestOneLevelSelectDataPass()
         {
-            var input = new List<int>() {5, 213, 23, -21, 23, 99}.Chunks(2);
+            var input = new List<int>() {5, 213, 23, -21, 23, 99}.BatchIEnumerable(2).ToList();
             await
                 TestMultiLevelDataPass<int, int>(
                     async (streamSource, factory) => await streamSource.Select(_ => _, factory), input, input,
@@ -52,7 +48,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestTwoLevelSelect()
         {
-            var input = new List<int>() {5, 213, 23, -21, 23, 99}.Chunks(2);
+            var input = new List<int>() {5, 213, 23, -21, 23, 99}.BatchIEnumerable(2).ToList();
 
             await
                 TestMultiLevelDataPass<int, int>(
@@ -67,7 +63,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestOneLevelWhereDataPass()
         {
-            var input = new List<int>() { 5, 213, 23, -21, 23, 99 }.Chunks(2);
+            var input = new List<int>() { 5, 213, 23, -21, 23, 99 }.BatchIEnumerable(2).ToList();
             var output = new List<List<int>>() {new List<int>() {213}, new List<int>() {23}, new List<int>() {23, 99}};
             await
                 TestMultiLevelDataPass<int, int>(
@@ -78,7 +74,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestTwoLevelWhere()
         {
-            var input = new List<int>() { 5, 213, 23, -21, 23, 99 }.Chunks(2);
+            var input = new List<int>() { 5, 213, 23, -21, 23, 99 }.BatchIEnumerable(2).ToList();
             var output = new List<List<int>>() { new List<int>() { 213 }, new List<int>() { 23 }, new List<int>() { 23, 99 } };
 
             await

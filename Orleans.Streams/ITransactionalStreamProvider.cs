@@ -12,6 +12,6 @@ namespace Orleans.Streams
         /// Get identity of the provided stream.
         /// </summary>
         /// <returns></returns>
-        Task<TransactionalStreamIdentity<TOut>> GetStreamIdentity();
+        Task<StreamIdentity<TOut>> GetStreamIdentity();
     }
 }

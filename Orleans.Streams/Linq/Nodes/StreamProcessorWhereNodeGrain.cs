@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Linq.Nodes
 {
@@ -15,9 +16,9 @@ namespace Orleans.Streams.Linq.Nodes
             return TaskDone.Done;
         }
 
-        protected override async Task ItemArrived(IEnumerable<TIn> items)
+        public override async Task Visit(ItemMessage<TIn> itemMessage)
         {
-            var resultList = items.Where(item => _function(item)).ToList();
+            var resultList = itemMessage.Items.Where(item => _function(item)).ToList();
             await StreamProvider.SendItems(resultList, false);
         }
     }

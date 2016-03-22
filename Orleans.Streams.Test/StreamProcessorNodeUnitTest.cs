@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Orleans.Collections.Test.Helpers;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;
 using Orleans.Streams.Linq.Aggregates;
+using Orleans.Streams.Messages;
+using Orleans.Streams.Test.Helpers;
 using Orleans.TestingHost;
 
 namespace Orleans.Collections.Test
@@ -79,7 +80,7 @@ namespace Orleans.Collections.Test
 
         private async Task SubscribeConsumer(IStreamProcessorSelectNodeGrain<int, int> processor, MultiStreamListConsumer<int> testConsumer)
         {
-            await testConsumer.SetInput(new List<TransactionalStreamIdentity<int>>() {await processor.GetStreamIdentity()});
+            await testConsumer.SetInput(new List<StreamIdentity<int>>() {await processor.GetStreamIdentity()});
         }
 
         [TestMethod]
@@ -137,15 +138,11 @@ namespace Orleans.Collections.Test
             var consumerAggregate = new TestTransactionalStreamConsumerAggregate<int>(provider);
             await consumerAggregate.SetInput(await aggregate.GetStreamIdentities());
 
-            var subscriptionHdl1 = await GetStreamSubscriptionHandles<StreamTransaction>(streamIdentitiesProcessor[0].TransactionStreamIdentifier);
-            var subscriptionHdl2 = await GetStreamSubscriptionHandles<StreamTransaction>(streamIdentitiesProcessor[1].TransactionStreamIdentifier);
-            var subscriptionHdl3 = await GetStreamSubscriptionHandles<IEnumerable<int>>(streamIdentitiesProcessor[0].ItemBatchStreamIdentifier);
-            var subscriptionHdl4 = await GetStreamSubscriptionHandles<IEnumerable<int>>(streamIdentitiesProcessor[1].ItemBatchStreamIdentifier);
+            var subscriptionHdl1 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[0].StreamIdentifier);
+            var subscriptionHdl2 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[1].StreamIdentifier);
 
             Assert.AreEqual(1, subscriptionHdl1.Count);
             Assert.AreEqual(1, subscriptionHdl2.Count);
-            Assert.AreEqual(1, subscriptionHdl3.Count);
-            Assert.AreEqual(1, subscriptionHdl4.Count);
 
             await inputAggregate.TearDown();
 
@@ -155,22 +152,11 @@ namespace Orleans.Collections.Test
 
             Assert.IsFalse(taskCompleted);
 
-            subscriptionHdl1 = await GetStreamSubscriptionHandles<StreamTransaction>(streamIdentitiesProcessor[0].TransactionStreamIdentifier);
-            subscriptionHdl2 = await GetStreamSubscriptionHandles<StreamTransaction>(streamIdentitiesProcessor[1].TransactionStreamIdentifier);
-            subscriptionHdl3 = await GetStreamSubscriptionHandles<IEnumerable<int>>(streamIdentitiesProcessor[0].ItemBatchStreamIdentifier);
-            subscriptionHdl4 = await GetStreamSubscriptionHandles<IEnumerable<int>>(streamIdentitiesProcessor[1].ItemBatchStreamIdentifier);
+            subscriptionHdl1 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[0].StreamIdentifier);
+            subscriptionHdl2 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[1].StreamIdentifier);
 
             Assert.AreEqual(0, subscriptionHdl1.Count);
             Assert.AreEqual(0, subscriptionHdl2.Count);
-            Assert.AreEqual(0, subscriptionHdl3.Count);
-            Assert.AreEqual(0, subscriptionHdl4.Count);
-        }
-
-        private IContainerGrain<T> GetRandomDistributedCollection<T>()
-        {
-            var grain = GrainFactory.GetGrain<IContainerGrain<T>>(Guid.NewGuid());
-
-            return grain;
         }
 
         private async Task SubscribeConsumer<T>(ITransactionalStreamProvider<T> provider,

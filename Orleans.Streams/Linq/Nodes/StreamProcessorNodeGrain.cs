@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Orleans.Streams.Endpoints;
+using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Linq.Nodes
 {
@@ -10,7 +11,7 @@ namespace Orleans.Streams.Linq.Nodes
         private SingleStreamConsumer<TIn> _streamConsumer;
         protected SingleStreamProvider<TOut> StreamProvider;
 
-        public async Task SetInput(TransactionalStreamIdentity<TIn> inputStream)
+        public async Task SetInput(StreamIdentity<TIn> inputStream)
         {
             await _streamConsumer.SetInput(inputStream);
         }
@@ -20,7 +21,7 @@ namespace Orleans.Streams.Linq.Nodes
             return _streamConsumer.TransactionComplete(transactionId);
         }
 
-        public async Task<TransactionalStreamIdentity<TOut>> GetStreamIdentity()
+        public async Task<StreamIdentity<TOut>> GetStreamIdentity()
         {
             return await StreamProvider.GetStreamIdentity();
         }
@@ -52,24 +53,24 @@ namespace Orleans.Streams.Linq.Nodes
         {
             base.OnActivateAsync();
             StreamProvider = new SingleStreamProvider<TOut>(GetStreamProvider(StreamProviderNamespace), this.GetPrimaryKey());
-            _streamConsumer = new SingleStreamConsumer<TIn>(GetStreamProvider(StreamProviderNamespace), ItemArrived, TransactionMessageArrived,
+            _streamConsumer = new SingleStreamConsumer<TIn>(GetStreamProvider(StreamProviderNamespace), this,
                 TearDown);
             return TaskDone.Done;
         }
 
-        protected virtual async Task TransactionMessageArrived(StreamTransaction transaction)
+        public abstract Task Visit(ItemMessage<TIn> message);
+
+        public async Task Visit(TransactionMessage transactionMessage)
         {
             // TODO: Make sure all items prior to sending the end message are processed when implementing methods not running on grain thread.
-            if (transaction.State == TransactionState.Start)
+            if (transactionMessage.State == TransactionState.Start)
             {
-                await StreamProvider.StartTransaction(transaction.TransactionId);
+                await StreamProvider.StartTransaction(transactionMessage.TransactionId);
             }
-            else if (transaction.State == TransactionState.End)
+            else if (transactionMessage.State == TransactionState.End)
             {
-                await StreamProvider.EndTransaction(transaction.TransactionId);
+                await StreamProvider.EndTransaction(transactionMessage.TransactionId);
             }
         }
-
-        protected abstract Task ItemArrived(IEnumerable<TIn> items);
     }
 }

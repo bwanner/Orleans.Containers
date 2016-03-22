@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
 {
@@ -11,24 +12,21 @@ namespace Orleans.Streams.Endpoints
     public class SingleStreamProvider<T> : ITransactionalStreamProvider<T>
     {
         public const string StreamNamespacePrefix = "SingleStreamProvider";
-        private readonly IAsyncStream<IEnumerable<T>> _itemBatchStream;
-        private readonly TransactionalStreamIdentity<T> _streamIdentity;
-        private readonly IAsyncStream<StreamTransaction> _transactionStream;
+        private readonly IAsyncStream<IStreamMessage> _messageStream;
+        private readonly StreamIdentity<T> _streamIdentity;
         private int _lastTransactionId = -1;
         private bool _tearDownExecuted;
 
         public SingleStreamProvider(IStreamProvider provider, Guid guid = default(Guid))
         {
             guid = guid == default(Guid) ? Guid.NewGuid() : guid;
-            _streamIdentity = new TransactionalStreamIdentity<T>(StreamNamespacePrefix, guid);
-            _itemBatchStream = provider.GetStream<IEnumerable<T>>(_streamIdentity.ItemBatchStreamIdentifier.Item1,
-                _streamIdentity.ItemBatchStreamIdentifier.Item2);
-            _transactionStream = provider.GetStream<StreamTransaction>(_streamIdentity.TransactionStreamIdentifier.Item1,
-                _streamIdentity.TransactionStreamIdentifier.Item2);
+            _streamIdentity = new StreamIdentity<T>(StreamNamespacePrefix, guid);
+            _messageStream = provider.GetStream<IStreamMessage>(_streamIdentity.StreamIdentifier.Item1,
+                _streamIdentity.StreamIdentifier.Item2);
             _tearDownExecuted = false;
         }
 
-        public Task<TransactionalStreamIdentity<T>> GetStreamIdentity()
+        public Task<StreamIdentity<T>> GetStreamIdentity()
         {
             return Task.FromResult(_streamIdentity);
         }
@@ -36,8 +34,7 @@ namespace Orleans.Streams.Endpoints
         public async Task TearDown()
         {
             _tearDownExecuted = true;
-            await _itemBatchStream.OnCompletedAsync();
-            await _transactionStream.OnCompletedAsync();
+            await _messageStream.OnCompletedAsync();
         }
 
         public Task<bool> IsTearedDown()
@@ -52,7 +49,8 @@ namespace Orleans.Streams.Endpoints
             {
                 await StartTransaction(curTransactionId);
             }
-            await Task.WhenAll(_itemBatchStream.OnNextAsync(items));
+            var message = new ItemMessage<T>(items);
+            await Task.WhenAll(_messageStream.OnNextAsync(message));
             if (useTransaction)
             {
                 await EndTransaction(curTransactionId);
@@ -68,12 +66,12 @@ namespace Orleans.Streams.Endpoints
 
         public async Task StartTransaction(int transactionId)
         {
-            await _transactionStream.OnNextAsync(new StreamTransaction {State = TransactionState.Start, TransactionId = transactionId});
+            await _messageStream.OnNextAsync(new TransactionMessage {State = TransactionState.Start, TransactionId = transactionId});
         }
 
         public async Task EndTransaction(int transactionId)
         {
-            await _transactionStream.OnNextAsync(new StreamTransaction {State = TransactionState.End, TransactionId = transactionId});
+            await _messageStream.OnNextAsync(new TransactionMessage {State = TransactionState.End, TransactionId = transactionId});
         }
     }
 }

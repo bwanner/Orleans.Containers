@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
 {
@@ -13,43 +14,31 @@ namespace Orleans.Streams.Endpoints
         private readonly Dictionary<int, TaskCompletionSource<Task>> _awaitedTransactions;
         private readonly IStreamProvider _streamProvider;
         private readonly Func<Task> _tearDownFunc;
-        private StreamSubscriptionHandle<IEnumerable<TIn>> _itemBatchStreamHandle;
-        private StreamSubscriptionHandle<StreamTransaction> _transactionStreamHandle;
-        private readonly Func<StreamTransaction, Task> _streamTransactionReceivedFunc;
-        private readonly Func<IEnumerable<TIn>, Task> _streamItemBatchReceivedFunc;
+        private StreamSubscriptionHandle<IStreamMessage> _messageStreamSubscriptionHandle;
         private bool _tearDownExecuted;
+        private readonly IStreamMessageVisitor<TIn> _streamMessageVisitor;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="streamProvider">Stream provider to be used.</param>
-        /// <param name="streamItemBatchReceivedFunc">Asynchronous function to be executed when an item is received.</param>
-        /// <param name="streamTransactionReceivedFunc">Asynchronous function to be executed when a transaction message is received.</param>
+        /// <param name="streamMessageVisitor">Owning consumer to call on message arrival.</param>
         /// <param name="tearDownFunc">Asynchronous function to be executed on tear down.</param>
-        public SingleStreamConsumer(IStreamProvider streamProvider, Func<IEnumerable<TIn>, Task> streamItemBatchReceivedFunc = null, Func<StreamTransaction, Task> streamTransactionReceivedFunc = null, Func<Task> tearDownFunc = null)
+        public SingleStreamConsumer(IStreamProvider streamProvider, IStreamMessageVisitor<TIn> streamMessageVisitor, Func<Task> tearDownFunc = null)
         {
             _streamProvider = streamProvider;
             _tearDownFunc = tearDownFunc;
             _awaitedTransactions = new Dictionary<int, TaskCompletionSource<Task>>();
-            _streamTransactionReceivedFunc = streamTransactionReceivedFunc;
-            _streamItemBatchReceivedFunc = streamItemBatchReceivedFunc;
+            _streamMessageVisitor = streamMessageVisitor;
         }
 
-        public async Task SetInput(TransactionalStreamIdentity<TIn> inputStream)
+        public async Task SetInput(StreamIdentity<TIn> inputStream)
         {
             _tearDownExecuted = false;
-            var streamTransaction = _streamProvider.GetStream<StreamTransaction>(inputStream.TransactionStreamIdentifier.Item1, inputStream.TransactionStreamIdentifier.Item2);
+            var messageStream = _streamProvider.GetStream<IStreamMessage>(inputStream.StreamIdentifier.Item1, inputStream.StreamIdentifier.Item2);
 
-            _transactionStreamHandle =
-                await streamTransaction.SubscribeAsync((item, token) => TransactionMessageArrived(item), async () => await TearDown());
-
-
-            var streamItem = _streamProvider.GetStream<IEnumerable<TIn>>(inputStream.ItemBatchStreamIdentifier.Item1, inputStream.ItemBatchStreamIdentifier.Item2);
-
-            if (_streamItemBatchReceivedFunc != null)
-            {
-                _itemBatchStreamHandle = await streamItem.SubscribeAsync((item, token) => _streamItemBatchReceivedFunc(item));
-            }
+            _messageStreamSubscriptionHandle =
+                await messageStream.SubscribeAsync((message, token) => message.Accept(this), async () => await TearDown());
         }
 
         public virtual async Task TearDown()
@@ -57,16 +46,12 @@ namespace Orleans.Streams.Endpoints
             if (!_tearDownExecuted)
             {
                 _tearDownExecuted = true;
-                if (_transactionStreamHandle != null)
+                if (_messageStreamSubscriptionHandle != null)
                 {
-                    await _transactionStreamHandle.UnsubscribeAsync();
+                    await _messageStreamSubscriptionHandle.UnsubscribeAsync();
                 }
-                if (_itemBatchStreamHandle != null)
-                {
-                    await _itemBatchStreamHandle.UnsubscribeAsync();
-                }
-                _transactionStreamHandle = null;
-                _itemBatchStreamHandle = null;
+
+                _messageStreamSubscriptionHandle = null;
                 if (_tearDownFunc != null)
                 {
                     await _tearDownFunc();
@@ -94,24 +79,36 @@ namespace Orleans.Streams.Endpoints
             await _awaitedTransactions[transactionId].Task;
         }
 
-        private async Task TransactionMessageArrived(StreamTransaction transaction)
+        private void TransactionMessageArrived(TransactionMessage transactionMessage)
         {
-            if (transaction.State == TransactionState.Start)
+            if (transactionMessage.State == TransactionState.Start)
             {
-                if (!_awaitedTransactions.ContainsKey(transaction.TransactionId))
+                if (!_awaitedTransactions.ContainsKey(transactionMessage.TransactionId))
                 {
-                    _awaitedTransactions[transaction.TransactionId] = new TaskCompletionSource<Task>();
+                    _awaitedTransactions[transactionMessage.TransactionId] = new TaskCompletionSource<Task>();
                 }
             }
 
-            else if (transaction.State == TransactionState.End)
+            else if (transactionMessage.State == TransactionState.End)
             {
-                _awaitedTransactions[transaction.TransactionId].SetResult(TaskDone.Done);
+                _awaitedTransactions[transactionMessage.TransactionId].SetResult(TaskDone.Done);
             }
+        }
 
-            if (_streamTransactionReceivedFunc != null)
+        public async Task Visit(ItemMessage<TIn> message)
+        {
+            if (_streamMessageVisitor != null)
             {
-                await _streamTransactionReceivedFunc(transaction);
+                await _streamMessageVisitor.Visit(message);
+            }
+        }
+
+        public async Task Visit(TransactionMessage transactionMessage)
+        {
+            TransactionMessageArrived(transactionMessage);
+            if (_streamMessageVisitor != null)
+            {
+                await _streamMessageVisitor.Visit(transactionMessage);
             }
         }
     }

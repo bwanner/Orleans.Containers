@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
-using Orleans.Streams;
 using Orleans.Streams.Endpoints;
 
-namespace Orleans.Collections.Test.Helpers
+namespace Orleans.Streams.Test.Helpers
 {
     public class TestTransactionalStreamConsumerAggregate<TIn> : MultiStreamListConsumer<TIn>
     { 
