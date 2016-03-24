@@ -75,6 +75,7 @@
   <ItemGroup>
     <Compile Include="ContainerElementList.cs" />
     <Compile Include="ContainerElement.cs" />
+    <Compile Include="ItemPropertyChangedMessage.cs" />
     <Compile Include="Observable\ContainerElementPropertyChanged.cs" />
     <Compile Include="Observable\IContainerNotifyPropertyChanged.cs" />
     <Compile Include="Observable\IObservableContainerGrain.cs" />

@@ -16,7 +16,8 @@ namespace Orleans.Collections
     {
         protected ContainerElementList<T> List;
         protected SingleStreamProvider<ContainerElement<T>> StreamProvider;
-        private SingleStreamConsumer<T> _streamConsumer;
+        private SingleStreamTransactionManager _streamTransactionManager;
+        private StreamMessageDispatcher _streamMessageDispatcher;
         private const string StreamProviderName = "CollectionStreamProvider";
 
         public virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
@@ -61,7 +62,9 @@ namespace Orleans.Collections
         {
             List = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
             StreamProvider = new SingleStreamProvider<ContainerElement<T>>(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
-            _streamConsumer = new SingleStreamConsumer<T>(GetStreamProvider(StreamProviderName), this, TearDown);
+            _streamMessageDispatcher = new StreamMessageDispatcher(GetStreamProvider(StreamProviderName), TearDown);
+            _streamTransactionManager = new SingleStreamTransactionManager(_streamMessageDispatcher);
+            _streamMessageDispatcher.Register<ItemMessage<T>>(ProcessItemMessage);
             await base.OnActivateAsync();
         }
 
@@ -78,12 +81,12 @@ namespace Orleans.Collections
 
         public async Task SetInput(StreamIdentity<T> inputStream)
         {
-            await _streamConsumer.SetInput(inputStream);
+            await _streamMessageDispatcher.Subscribe(inputStream.StreamIdentifier);
         }
 
         public Task TransactionComplete(int transactionId)
         {
-            return _streamConsumer.TransactionComplete(transactionId);
+            return _streamTransactionManager.TransactionComplete(transactionId);
         }
 
         public async Task TearDown()
@@ -93,7 +96,7 @@ namespace Orleans.Collections
 
         public async Task<bool> IsTearedDown()
         {
-            var tearDownStates = await Task.WhenAll(_streamConsumer.IsTearedDown(), StreamProvider.IsTearedDown());
+            var tearDownStates = await Task.WhenAll(_streamMessageDispatcher.IsTearedDown(), StreamProvider.IsTearedDown());
 
             return tearDownStates[0] && tearDownStates[1];
         }
@@ -194,14 +197,9 @@ namespace Orleans.Collections
             return result;
         }
 
-        public async Task Visit(ItemMessage<T> message)
+        public async Task ProcessItemMessage(ItemMessage<T> message)
         {
             await AddRange(message.Items);
-        }
-
-        public Task Visit(TransactionMessage transactionMessage)
-        {
-            return TaskDone.Done;
         }
     }
 }

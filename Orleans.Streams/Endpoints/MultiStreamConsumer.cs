@@ -10,10 +10,11 @@ namespace Orleans.Streams.Endpoints
     /// Consumes items from multiple streams.
     /// </summary>
     /// <typeparam name="T">Type of items to consume.</typeparam>
-    public class MultiStreamConsumer<T> : ITransactionalStreamConsumerAggregate<T>, IStreamMessageVisitor<T>
+    public class MultiStreamConsumer<T> : ITransactionalStreamConsumerAggregate<T>
     {
         private readonly IStreamProvider _streamProvider;
-        protected readonly List<SingleStreamConsumer<T>> Consumers;
+        protected readonly List<SingleStreamTransactionManager> TransactionManagers;
+        protected readonly List<StreamMessageDispatcher> MessageDispatchers; 
         private bool _tearDownExecuted;
         protected Func<IEnumerable<T>, Task> StreamItemBatchReceivedFunc;
         protected Func<TransactionMessage, Task> StreamTransactionReceivedFunc;
@@ -27,7 +28,8 @@ namespace Orleans.Streams.Endpoints
         public MultiStreamConsumer(IStreamProvider streamProvider, Func<IEnumerable<T>, Task> streamItemBatchReceivedFunc,
             Func<TransactionMessage, Task> streamTransactionReceivedFunc = null)
         {
-            Consumers = new List<SingleStreamConsumer<T>>();
+            TransactionManagers = new List<SingleStreamTransactionManager>();
+            MessageDispatchers = new List<StreamMessageDispatcher>();
             _streamProvider = streamProvider;
             StreamTransactionReceivedFunc = streamTransactionReceivedFunc;
             StreamItemBatchReceivedFunc = streamItemBatchReceivedFunc;
@@ -42,7 +44,8 @@ namespace Orleans.Streams.Endpoints
         public MultiStreamConsumer(IStreamProvider streamProvider, Action<IEnumerable<T>> streamItemBatchReceivedAction = null,
             Action<TransactionMessage> streamTransactionReceivedAction = null)
         {
-            Consumers = new List<SingleStreamConsumer<T>>();
+            TransactionManagers = new List<SingleStreamTransactionManager>();
+            MessageDispatchers = new List<StreamMessageDispatcher>();
             _streamProvider = streamProvider;
 
             if (streamTransactionReceivedAction != null)
@@ -70,11 +73,15 @@ namespace Orleans.Streams.Endpoints
             _tearDownExecuted = false;
             foreach (var identity in streamIdentities)
             {
-                var consumer = new SingleStreamConsumer<T>(_streamProvider, this);
+                var dispatcher = new StreamMessageDispatcher(_streamProvider, null);
+                var consumer = new SingleStreamTransactionManager(dispatcher);
 
-                await consumer.SetInput(identity);
+                await dispatcher.Subscribe(identity.StreamIdentifier);
+                dispatcher.Register<ItemMessage<T>>(ProcessItemMessage);
+                dispatcher.Register<TransactionMessage>(ProcessTransactionMessage);
 
-                Consumers.Add(consumer);
+                MessageDispatchers.Add(dispatcher);
+                TransactionManagers.Add(consumer);
             }
         }
 
@@ -85,7 +92,7 @@ namespace Orleans.Streams.Endpoints
         /// <returns></returns>
         public async Task TransactionComplete(int transactionId)
         {
-            await Task.WhenAll(Consumers.Select(c => c.TransactionComplete(transactionId)));
+            await Task.WhenAll(TransactionManagers.Select(c => c.TransactionComplete(transactionId)));
         }
 
         /// <summary>
@@ -99,11 +106,11 @@ namespace Orleans.Streams.Endpoints
 
         public virtual async Task TearDown()
         {
-            await Task.WhenAll(Consumers.Select(c => c.TearDown()));
+            await Task.WhenAll(MessageDispatchers.Select(c => c.TearDown()));
             _tearDownExecuted = true;
         }
 
-        public async Task Visit(ItemMessage<T> message)
+        public async Task ProcessItemMessage(ItemMessage<T> message)
         {
             if (StreamItemBatchReceivedFunc != null)
             {
@@ -111,7 +118,7 @@ namespace Orleans.Streams.Endpoints
             }
         }
 
-        public async Task Visit(TransactionMessage transactionMessage)
+        public async Task ProcessTransactionMessage(TransactionMessage transactionMessage)
         {
             if (StreamTransactionReceivedFunc != null)
             {

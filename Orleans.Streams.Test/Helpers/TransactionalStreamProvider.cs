@@ -18,7 +18,7 @@ namespace Orleans.Streams.Test.Helpers
 
         public async Task<bool> AllConsumersTearDownCalled()
         {
-            var values = await Task.WhenAll(Consumers.Select(c => c.IsTearedDown()));
+            var values = await Task.WhenAll(MessageDispatchers.Select(c => c.IsTearedDown()));
             var valuesGrouped = values.GroupBy(x => x);
             return valuesGrouped.Count() == 1 && valuesGrouped.Count(group => group.Key == true) == 1;
         }

@@ -4,7 +4,7 @@ using Orleans.Streams.Messages;
 
 namespace Orleans.Streams
 {
-    public interface ITransactionalStreamConsumer<TIn> : ITransactionalStreamTearDown, IStreamMessageVisitor<TIn>
+    public interface ITransactionalStreamConsumer<TIn> : ITransactionalStreamTearDown
     {
         Task SetInput(StreamIdentity<TIn> inputStream);
 

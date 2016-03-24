@@ -16,7 +16,7 @@ namespace Orleans.Streams.Linq.Nodes
             return TaskDone.Done;
         }
 
-        public override async Task Visit(ItemMessage<TIn> itemMessage)
+        protected override async Task ProcessItemMessage(ItemMessage<TIn> itemMessage)
         {
             var result = itemMessage.Items.Select(_function).ToList();
             await StreamProvider.SendItems(result, false);

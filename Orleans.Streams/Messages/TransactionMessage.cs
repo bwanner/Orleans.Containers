@@ -16,11 +16,6 @@ namespace Orleans.Streams.Messages
         {
             return other.State.Equals(this.State) && other.TransactionId == this.TransactionId;
         }
-
-        public async Task Accept(IStreamMessageVisitor visitor)
-        {
-            await visitor.Visit(this);
-        }
     }
 
     /// <summary>
