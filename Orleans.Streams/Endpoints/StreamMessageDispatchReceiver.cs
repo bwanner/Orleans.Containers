@@ -5,7 +5,7 @@ using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
 {
-    public class StreamMessageDispatcher : IStreamMessageVisitor, ITransactionalStreamTearDown
+    public class StreamMessageDispatchReceiver : IStreamMessageVisitor, ITransactionalStreamTearDown
     {
         private readonly Dictionary<Type, List<dynamic>> _callbacks = new Dictionary<Type, List<dynamic>>();
         private readonly IStreamProvider _streamProvider;
@@ -13,7 +13,7 @@ namespace Orleans.Streams.Endpoints
         private StreamSubscriptionHandle<IStreamMessage> _streamHandle;
         private bool _tearDownExecuted;
 
-        public StreamMessageDispatcher(IStreamProvider streamProvider, Func<Task> tearDownFunc)
+        public StreamMessageDispatchReceiver(IStreamProvider streamProvider, Func<Task> tearDownFunc)
         {
             _streamProvider = streamProvider;
             _tearDownFunc = tearDownFunc;
@@ -41,6 +41,7 @@ namespace Orleans.Streams.Endpoints
 
             _streamHandle =
                 await messageStream.SubscribeAsync((message, token) => Visit(message), async () => await TearDown());
+            // TODO evaluate OnNextBatchAsync
         }
 
         public void Register<T>(Func<T, Task> func)

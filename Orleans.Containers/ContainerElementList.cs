@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace Orleans.Collections
     /// <summary>
     ///     Stores elements in a container context and manages their references.
     /// </summary>
-    public class ContainerElementList<T> : ICollectionOperations<T>, IBatchItemAdder<T>
+    public class ContainerElementList<T> : ICollectionOperations<T>, IBatchItemAdder<T>, IEnumerable<ContainerElement<T>>
     {
         private readonly Guid _containerId;
         private readonly IElementExecutor<T> _executorGrainReference;
@@ -39,7 +40,7 @@ namespace Orleans.Collections
             Collection = new List<T>();
         }
 
-        public Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
+        public virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
             var oldCount = Collection.Count;
             foreach (var item in items)
@@ -52,7 +53,7 @@ namespace Orleans.Collections
             return Task.FromResult(newReferences);
         }
 
-        public Task Clear()
+        public virtual Task Clear()
         {
             Collection.Clear();
             return TaskDone.Done;
@@ -68,7 +69,7 @@ namespace Orleans.Collections
             return Task.FromResult(Collection.Count);
         }
 
-        public Task<bool> Remove(ContainerElementReference<T> reference)
+        public virtual Task<bool> Remove(ContainerElementReference<T> reference)
         {
             if (!reference.ContainerId.Equals(_containerId))
             {
@@ -85,11 +86,23 @@ namespace Orleans.Collections
             return Task.FromResult(true);
         }
 
-
         protected ContainerElementReference<T> GetReferenceForItem(int offset, bool itemExists = true)
         {
             return new ContainerElementReference<T>(_containerId, offset, _executorReference,
                 _executorGrainReference, itemExists);
+        }
+
+        public IEnumerator<ContainerElement<T>> GetEnumerator()
+        {
+            return
+                Enumerable.Range(0, Collection.Count)
+                    .Select(offset => new ContainerElement<T>(GetReferenceForItem(offset), Collection[offset]))
+                    .GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

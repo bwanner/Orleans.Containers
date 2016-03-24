@@ -74,9 +74,10 @@
   <ItemGroup>
     <Compile Include="DefaultStreamProcessorAggregateFactory.cs" />
     <Compile Include="Endpoints\MultiStreamListConsumer.cs" />
-    <Compile Include="Endpoints\SingleStreamTransactionManager.cs" />
+    <Compile Include="Endpoints\SingleStreamTransactionReceiver.cs" />
     <Compile Include="Endpoints\MultiStreamProvider.cs" />
     <Compile Include="Endpoints\MultiStreamConsumer.cs" />
+    <Compile Include="Endpoints\StreamMessageSender.cs" />
     <Compile Include="Messages\IStreamMessage.cs" />
     <Compile Include="Messages\IStreamMessageVisitor.cs" />
     <Compile Include="IStreamProcessorAggregate.cs" />
@@ -102,10 +103,11 @@
     <Compile Include="Properties\orleans.codegen.cs" />
     <Compile Include="Linq\Aggregates\StreamProcessorSelectAggregate.cs" />
     <Compile Include="Linq\Nodes\StreamProcessorNodeGrain.cs" />
-    <Compile Include="Endpoints\SingleStreamProvider.cs" />
+    <Compile Include="Endpoints\SingleStreamTransactionSender.cs" />
     <Compile Include="Messages\TransactionMessage.cs" />
+    <Compile Include="StreamHelper.cs" />
     <Compile Include="StreamIdentity.cs" />
-    <Compile Include="Endpoints\StreamMessageDispatcher.cs" />
+    <Compile Include="Endpoints\StreamMessageDispatchReceiver.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

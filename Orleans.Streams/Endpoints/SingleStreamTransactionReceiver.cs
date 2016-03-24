@@ -8,18 +8,18 @@ namespace Orleans.Streams.Endpoints
     /// <summary>
     /// Consumes items of a single stream.
     /// </summary>
-    public class SingleStreamTransactionManager
+    public class SingleStreamTransactionReceiver
     {
         private readonly Dictionary<int, TaskCompletionSource<Task>> _awaitedTransactions;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <param name="dispatcher">Dispatcher used to subscribe to transaction message.</param>
-        public SingleStreamTransactionManager(StreamMessageDispatcher dispatcher)
+        /// <param name="dispatchReceiver">Dispatcher used to subscribe to transaction message.</param>
+        public SingleStreamTransactionReceiver(StreamMessageDispatchReceiver dispatchReceiver)
         {
             _awaitedTransactions = new Dictionary<int, TaskCompletionSource<Task>>();
-            dispatcher.Register<TransactionMessage>(ProcessTransactionMessage);
+            dispatchReceiver.Register<TransactionMessage>(ProcessTransactionMessage);
         }
 
         /// <summary>

@@ -41,7 +41,7 @@ namespace Orleans.Streams.Linq
             _previous = previous;
         }
 
-        public async Task<IList<StreamIdentity<TOut>>> GetStreamIdentities()
+        public async Task<IList<StreamIdentity>> GetStreamIdentities()
         {
             return await Aggregate.GetStreamIdentities();
         }

@@ -24,7 +24,7 @@ namespace Orleans.Streams
             get { return _factory; }
         }
 
-        public async Task<IStreamProcessorSelectAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Func<TIn, TOut> selectionFunc, IList<StreamIdentity<TIn>> streamIdentities)
+        public async Task<IStreamProcessorSelectAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Func<TIn, TOut> selectionFunc, IList<StreamIdentity> streamIdentities)
         {
             var processorAggregate =_factory.GetGrain<IStreamProcessorSelectAggregate<TIn, TOut>>(Guid.NewGuid());
 
@@ -34,7 +34,7 @@ namespace Orleans.Streams
             return processorAggregate;
         }
 
-        public async Task<IStreamProcessorWhereAggregate<TIn>> CreateWhere<TIn>(Func<TIn, bool> filterFunc, IList<StreamIdentity<TIn>> streamIdentities)
+        public async Task<IStreamProcessorWhereAggregate<TIn>> CreateWhere<TIn>(Func<TIn, bool> filterFunc, IList<StreamIdentity> streamIdentities)
         {
             var processorAggregate = _factory.GetGrain<IStreamProcessorWhereAggregate<TIn>>(Guid.NewGuid());
 

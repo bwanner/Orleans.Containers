@@ -190,7 +190,7 @@ namespace Orleans.Collections
             return await container.ExecuteSync(func, reference);
         }
 
-        public async Task SetInput(IEnumerable<StreamIdentity<T>> streamIdentities)
+        public async Task SetInput(IEnumerable<StreamIdentity> streamIdentities)
         {
             _tearDownExecuted = false;
             if (streamIdentities.Count() != _containers.Count)
@@ -200,7 +200,7 @@ namespace Orleans.Collections
 
             await
                 Task.WhenAll(_containers.Zip(streamIdentities,
-                    (grain, identity) => new Tuple<IContainerNodeGrain<T>, StreamIdentity<T>>(grain, identity))
+                    (grain, identity) => new Tuple<IContainerNodeGrain<T>, StreamIdentity>(grain, identity))
                     .Select(t => t.Item1.SetInput(t.Item2)));
         }
 
@@ -209,11 +209,11 @@ namespace Orleans.Collections
             await Task.WhenAll(_containers.Select(c => c.TransactionComplete(transactionId)));
         }
 
-        public async Task<IList<StreamIdentity<ContainerElement<T>>>> GetStreamIdentities()
+        public async Task<IList<StreamIdentity>> GetStreamIdentities()
         {
             var streamTasks = await Task.WhenAll(_containers.Select(c => c.GetStreamIdentity()));
 
-            return new List<StreamIdentity<ContainerElement<T>>>(streamTasks);
+            return new List<StreamIdentity>(streamTasks);
         }
 
         public Task<bool> IsTearedDown()

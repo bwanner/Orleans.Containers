@@ -6,12 +6,12 @@ namespace Orleans.Streams
     /// Provides a stream of data.
     /// </summary>
     /// <typeparam name="TOut">Type of data.</typeparam>
-    public interface ITransactionalStreamProvider<TOut> : ITransactionalStreamTearDown
+    public interface ITransactionalStreamProvider : ITransactionalStreamTearDown
     {
         /// <summary>
         /// Get identity of the provided stream.
         /// </summary>
         /// <returns></returns>
-        Task<StreamIdentity<TOut>> GetStreamIdentity();
+        Task<StreamIdentity> GetStreamIdentity();
     }
 }

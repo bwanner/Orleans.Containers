@@ -10,11 +10,11 @@ namespace Orleans.Streams.Endpoints
     /// Consumes items from multiple streams.
     /// </summary>
     /// <typeparam name="T">Type of items to consume.</typeparam>
-    public class MultiStreamConsumer<T> : ITransactionalStreamConsumerAggregate<T>
+    public class MultiStreamConsumer<T> : ITransactionalStreamConsumerAggregate
     {
         private readonly IStreamProvider _streamProvider;
-        protected readonly List<SingleStreamTransactionManager> TransactionManagers;
-        protected readonly List<StreamMessageDispatcher> MessageDispatchers; 
+        protected readonly List<SingleStreamTransactionReceiver> TransactionManagers;
+        protected readonly List<StreamMessageDispatchReceiver> MessageDispatchers; 
         private bool _tearDownExecuted;
         protected Func<IEnumerable<T>, Task> StreamItemBatchReceivedFunc;
         protected Func<TransactionMessage, Task> StreamTransactionReceivedFunc;
@@ -28,8 +28,8 @@ namespace Orleans.Streams.Endpoints
         public MultiStreamConsumer(IStreamProvider streamProvider, Func<IEnumerable<T>, Task> streamItemBatchReceivedFunc,
             Func<TransactionMessage, Task> streamTransactionReceivedFunc = null)
         {
-            TransactionManagers = new List<SingleStreamTransactionManager>();
-            MessageDispatchers = new List<StreamMessageDispatcher>();
+            TransactionManagers = new List<SingleStreamTransactionReceiver>();
+            MessageDispatchers = new List<StreamMessageDispatchReceiver>();
             _streamProvider = streamProvider;
             StreamTransactionReceivedFunc = streamTransactionReceivedFunc;
             StreamItemBatchReceivedFunc = streamItemBatchReceivedFunc;
@@ -44,8 +44,8 @@ namespace Orleans.Streams.Endpoints
         public MultiStreamConsumer(IStreamProvider streamProvider, Action<IEnumerable<T>> streamItemBatchReceivedAction = null,
             Action<TransactionMessage> streamTransactionReceivedAction = null)
         {
-            TransactionManagers = new List<SingleStreamTransactionManager>();
-            MessageDispatchers = new List<StreamMessageDispatcher>();
+            TransactionManagers = new List<SingleStreamTransactionReceiver>();
+            MessageDispatchers = new List<StreamMessageDispatchReceiver>();
             _streamProvider = streamProvider;
 
             if (streamTransactionReceivedAction != null)
@@ -68,13 +68,13 @@ namespace Orleans.Streams.Endpoints
             ;
         }
 
-        public async Task SetInput(IEnumerable<StreamIdentity<T>> streamIdentities)
+        public async Task SetInput(IEnumerable<StreamIdentity> streamIdentities)
         {
             _tearDownExecuted = false;
             foreach (var identity in streamIdentities)
             {
-                var dispatcher = new StreamMessageDispatcher(_streamProvider, null);
-                var consumer = new SingleStreamTransactionManager(dispatcher);
+                var dispatcher = new StreamMessageDispatchReceiver(_streamProvider, null);
+                var consumer = new SingleStreamTransactionReceiver(dispatcher);
 
                 await dispatcher.Subscribe(identity.StreamIdentifier);
                 dispatcher.Register<ItemMessage<T>>(ProcessItemMessage);

@@ -12,20 +12,22 @@ namespace Orleans.Streams.Endpoints
     /// <typeparam name="T">Type of items to stream.</typeparam>
     public class MultiStreamProvider<T> : ITransactionalStreamProviderAggregate<T>
     {
-        private readonly List<SingleStreamProvider<T>> _providers;
+        private readonly List<SingleStreamTransactionSender<T>> _providers;
         private int _lastTransactionId = -1;
 
         private bool _tearDownExecuted;
+        private List<StreamMessageSender> _senders;
 
         public MultiStreamProvider(IStreamProvider provider, int numberOutputStreams)
         {
-            _providers = Enumerable.Range(0, numberOutputStreams).Select(i => new SingleStreamProvider<T>(provider)).ToList();
+            _senders = Enumerable.Range(0, numberOutputStreams).Select(i => new StreamMessageSender(provider)).ToList();
+            _providers = _senders.Select(s => new SingleStreamTransactionSender<T>(s)).ToList();
             _tearDownExecuted = false;
         }
 
-        public async Task<IList<StreamIdentity<T>>> GetStreamIdentities()
+        public async Task<IList<StreamIdentity>> GetStreamIdentities()
         {
-            var result = await Task.WhenAll(_providers.Select(p => p.GetStreamIdentity()));
+            var result = await Task.WhenAll(_senders.Select(s => s.GetStreamIdentity()));
 
             return result.ToList();
         }
@@ -37,12 +39,12 @@ namespace Orleans.Streams.Endpoints
 
         public async Task TearDown()
         {
-            await Task.WhenAll(_providers.Select(p => p.TearDown()));
+            await Task.WhenAll(_senders.Select(s => s.TearDown()));
             _tearDownExecuted = true;
         }
 
         /// <summary>
-        /// Send items to output streams. Items are evenly distributed across providers.
+        /// Send items to output streams as one transaction. Items are evenly distributed across providers.
         /// </summary>
         /// <param name="data">Items to send.</param>
         /// <returns>Transaction identifier.</returns>
@@ -52,10 +54,12 @@ namespace Orleans.Streams.Endpoints
 
             var itemsPerProvider = (int) Math.Ceiling(data.Count/(double) _providers.Count);
             var chunks = data.BatchIEnumerable(itemsPerProvider);
+            await Task.WhenAll(_providers.Select(p => p.StartTransaction(transactionId)));
             var tasks =
-                _providers.Zip(chunks, (p, c) => new Tuple<SingleStreamProvider<T>, IList<T>>(p, c))
-                    .Select(t => t.Item1.SendItems(t.Item2, true, transactionId));
+                _providers.Zip(chunks, (p, c) => new Tuple<SingleStreamTransactionSender<T>, IList<T>>(p, c))
+                    .Select(t => t.Item1.SendItems(t.Item2, false));
             var taskResults = await Task.WhenAll(tasks);
+            await Task.WhenAll(_providers.Select(p => p.EndTransaction(transactionId)));
 
             return transactionId;
         }

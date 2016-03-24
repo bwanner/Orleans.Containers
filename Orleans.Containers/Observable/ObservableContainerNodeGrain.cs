@@ -14,12 +14,20 @@ namespace Orleans.Collections.Observable
             await base.OnActivateAsync();
         }
 
+        protected override ContainerElementList<T> CreateContainerElementList()
+        {
+            var list = new ObservableContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IObservableContainerNodeGrain<T>>());
+
+
+            return list;
+        }
+
         public override async Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
             var elementReferences = await base.AddRange(items);
             var containerElements = elementReferences.Select(r => new ContainerElement<T>(r, List[r])).ToList();
 
-            await StreamProvider.SendItems(containerElements, false);
+            await StreamTransactionSender.SendItems(containerElements, false);
             return elementReferences;
         }
 
@@ -28,8 +36,9 @@ namespace Orleans.Collections.Observable
             var item = List[reference];
             await List.Remove(reference);
 
-            var removeArgs = new List<ContainerElement<T>>(1) { new ContainerElement<T>(GetReferenceForItem(reference.Offset, false), item)};
-            await StreamProvider.SendItems(removeArgs);
+            var deletedReference = new ContainerElementReference<T>(reference.ContainerId, reference.Offset, null, null, false);
+            var removeArgs = new List<ContainerElement<T>>(1) { new ContainerElement<T>(deletedReference, item)};
+            await StreamTransactionSender.SendItems(removeArgs);
 
             return true;
         }

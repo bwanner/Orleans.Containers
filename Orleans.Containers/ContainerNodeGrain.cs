@@ -14,11 +14,11 @@ namespace Orleans.Collections
     /// </summary>
     public class ContainerNodeGrain<T> : Grain, IContainerNodeGrain<T>
     {
-        protected ContainerElementList<T> List;
-        protected SingleStreamProvider<ContainerElement<T>> StreamProvider;
-        private SingleStreamTransactionManager _streamTransactionManager;
-        private StreamMessageDispatcher _streamMessageDispatcher;
         private const string StreamProviderName = "CollectionStreamProvider";
+        private StreamMessageDispatchReceiver _streamMessageDispatchReceiver;
+        private SingleStreamTransactionReceiver _streamTransactionReceiver;
+        protected ContainerElementList<T> List;
+        protected SingleStreamTransactionSender<ContainerElement<T>> StreamTransactionSender;
 
         public virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
@@ -53,52 +53,55 @@ namespace Orleans.Collections
 
         public async Task<int> EnumerateToStream(int? transactionId = null)
         {
-            var hostedItems = List.Elements.Select((value, index) => new ContainerElement<T>(GetReferenceForItem(index), value)).ToList();
+            var containerElements = List.ToList();
 
-            return await StreamProvider.SendItems(hostedItems, true, transactionId);
+            return await StreamTransactionSender.SendItems(containerElements, true, transactionId);
         }
 
-        public override async Task OnActivateAsync()
+        public Task ExecuteAsync(Func<T, Task> func, ContainerElementReference<T> reference = null)
         {
-            List = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
-            StreamProvider = new SingleStreamProvider<ContainerElement<T>>(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
-            _streamMessageDispatcher = new StreamMessageDispatcher(GetStreamProvider(StreamProviderName), TearDown);
-            _streamTransactionManager = new SingleStreamTransactionManager(_streamMessageDispatcher);
-            _streamMessageDispatcher.Register<ItemMessage<T>>(ProcessItemMessage);
-            await base.OnActivateAsync();
+            return ExecuteAsync((x, state) => func(x), null, reference);
         }
 
-        protected ContainerElementReference<T> GetReferenceForItem(int offset, bool exists = true)
+        public async Task ExecuteAsync(Func<T, object, Task> func, object state, ContainerElementReference<T> reference = null)
         {
-            return new ContainerElementReference<T>(this.GetPrimaryKey(), offset, this,
-                this.AsReference<IContainerNodeGrain<T>>(), exists);
+            if (reference != null)
+            {
+                var curItem = List[reference];
+                await func(curItem, state);
+            }
+
+            else
+            {
+                foreach (var item in List.Elements)
+                {
+                    await func(item, state);
+                }
+            }
         }
 
-        public async Task<StreamIdentity<ContainerElement<T>>> GetStreamIdentity()
+        public Task<IList<object>> ExecuteAsync(Func<T, Task<object>> func)
         {
-            return await StreamProvider.GetStreamIdentity();
+            return ExecuteAsync((x, state) => func(x), null);
         }
 
-        public async Task SetInput(StreamIdentity<T> inputStream)
+        public async Task<IList<object>> ExecuteAsync(Func<T, object, Task<object>> func, object state)
         {
-            await _streamMessageDispatcher.Subscribe(inputStream.StreamIdentifier);
+            var results = List.Elements.Select(item => func(item, state)).ToList();
+            var resultSet = await Task.WhenAll(results);
+            return new List<object>(resultSet);
         }
 
-        public Task TransactionComplete(int transactionId)
+        public Task<object> ExecuteAsync(Func<T, Task<object>> func, ContainerElementReference<T> reference)
         {
-            return _streamTransactionManager.TransactionComplete(transactionId);
+            return ExecuteAsync((x, state) => func(x), null, reference);
         }
 
-        public async Task TearDown()
+        public async Task<object> ExecuteAsync(Func<T, object, Task<object>> func, object state, ContainerElementReference<T> reference)
         {
-            await StreamProvider.TearDown();
-        }
-
-        public async Task<bool> IsTearedDown()
-        {
-            var tearDownStates = await Task.WhenAll(_streamMessageDispatcher.IsTearedDown(), StreamProvider.IsTearedDown());
-
-            return tearDownStates[0] && tearDownStates[1];
+            var curItem = List[reference];
+            var result = await func(curItem, state);
+            return result;
         }
 
         public Task ExecuteSync(Action<T> action, ContainerElementReference<T> reference = null)
@@ -151,53 +154,52 @@ namespace Orleans.Collections
             return ExecuteSync((x, state) => func(x), null, reference);
         }
 
-        public Task ExecuteAsync(Func<T, Task> func, ContainerElementReference<T> reference = null)
+        public async Task SetInput(StreamIdentity inputStream)
         {
-            return ExecuteAsync((x, state) => func(x), null, reference);
+            await _streamMessageDispatchReceiver.Subscribe(inputStream.StreamIdentifier);
         }
 
-        public async Task ExecuteAsync(Func<T, object, Task> func, object state, ContainerElementReference<T> reference = null)
+        public Task TransactionComplete(int transactionId)
         {
-            if (reference != null)
-            {
-                var curItem = List[reference];
-                await func(curItem, state);
-            }
-
-            else
-            {
-                foreach (var item in List.Elements)
-                {
-                    await func(item, state);
-                }
-            }
+            return _streamTransactionReceiver.TransactionComplete(transactionId);
         }
 
-        public Task<IList<object>> ExecuteAsync(Func<T, Task<object>> func)
+        public async Task<StreamIdentity> GetStreamIdentity()
         {
-            return ExecuteAsync((x, state) => func(x), null);
+            return await StreamMessageSender.GetStreamIdentity();
         }
 
-        public async Task<IList<object>> ExecuteAsync(Func<T, object, Task<object>> func, object state)
+        public async Task<bool> IsTearedDown()
         {
-            var results = List.Elements.Select(item => func(item, state)).ToList();
-            var resultSet = await Task.WhenAll(results);
-            return new List<object>(resultSet);
+            var tearDownStates = await Task.WhenAll(_streamMessageDispatchReceiver.IsTearedDown(), StreamMessageSender.IsTearedDown());
+
+            return tearDownStates[0] && tearDownStates[1];
         }
 
-        public Task<object> ExecuteAsync(Func<T, Task<object>> func, ContainerElementReference<T> reference)
+        public async Task TearDown()
         {
-            return ExecuteAsync((x, state) => func(x), null, reference);
+            await StreamMessageSender.TearDown();
         }
 
-        public async Task<object> ExecuteAsync(Func<T, object, Task<object>> func, object state, ContainerElementReference<T> reference)
+        public override async Task OnActivateAsync()
         {
-            var curItem = List[reference];
-            var result = await func(curItem, state);
-            return result;
+            List = CreateContainerElementList();
+            StreamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
+            StreamTransactionSender = new SingleStreamTransactionSender<ContainerElement<T>>(StreamMessageSender);
+            _streamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), TearDown);
+            _streamTransactionReceiver = new SingleStreamTransactionReceiver(_streamMessageDispatchReceiver);
+            _streamMessageDispatchReceiver.Register<ItemMessage<T>>(ProcessItemMessage);
+            await base.OnActivateAsync();
         }
 
-        public async Task ProcessItemMessage(ItemMessage<T> message)
+        public StreamMessageSender StreamMessageSender { get; set; }
+
+        protected virtual ContainerElementList<T> CreateContainerElementList()
+        {
+            return new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
+        }
+
+        protected virtual async Task ProcessItemMessage(ItemMessage<T> message)
         {
             await AddRange(message.Items);
         }

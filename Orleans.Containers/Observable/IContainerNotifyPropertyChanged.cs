@@ -2,10 +2,12 @@
 {
     public interface IContainerElementNotifyPropertyChanged
     {
-        event ContainerElementPropertyChangedEventHandler PropertyChanged;
+        ObjectIdentifier Identifier { get; }
 
-        void ApplyChange(ContainerElementPropertyChanged change);
+        event ContainerElementPropertyChangedEventHandler ContainerPropertyChanged;
+
+        void ApplyChange(ContainerElementPropertyChangedEventArgs change);
     }
 
-    public delegate void ContainerElementPropertyChangedEventHandler(ContainerElementPropertyChanged change);
+    public delegate void ContainerElementPropertyChangedEventHandler(ContainerElementPropertyChangedEventArgs change);
 }

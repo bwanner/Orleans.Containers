@@ -5,7 +5,7 @@
     /// </summary>
     /// <typeparam name="TIn">Data input type.</typeparam>
     /// <typeparam name="TOut">Data output type.</typeparam>
-    public interface IStreamProcessorAggregate<TIn, TOut> : IGrainWithGuidKey, ITransactionalStreamConsumerAggregate<TIn>, ITransactionalStreamProviderAggregate<TOut>
+    public interface IStreamProcessorAggregate<TIn, TOut> : IGrainWithGuidKey, ITransactionalStreamConsumerAggregate, ITransactionalStreamProviderAggregate<TOut>
     {
     }
 }

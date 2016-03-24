@@ -5,9 +5,8 @@ namespace Orleans.Streams
     /// <summary>
     /// Stores information about all transactional streams available.
     /// </summary>
-    /// <typeparam name="TItem"></typeparam>
     [Serializable]
-    public class StreamIdentity<TItem>
+    public class StreamIdentity
     {
         private const string NamespacePostfix = "MessageStream";
 

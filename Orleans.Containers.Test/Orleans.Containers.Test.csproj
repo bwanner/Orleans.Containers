@@ -104,6 +104,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="ContainerGrainNodeUnitTest.cs" />
+    <Compile Include="ObservableContainerElementListTest.cs" />
     <Compile Include="ObservableContainerGrainNodeUnitTest.cs" />
     <Compile Include="ObservableContainerGrainUnitTest.cs" />
     <Compile Include="ContainerGrainUnitTest.cs" />
@@ -138,6 +139,9 @@
   <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Classes\" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

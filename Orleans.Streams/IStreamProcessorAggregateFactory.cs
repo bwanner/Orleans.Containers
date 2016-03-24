@@ -12,8 +12,8 @@ namespace Orleans.Streams
     {
         IGrainFactory Factory { get; }
 
-        Task<IStreamProcessorSelectAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Func<TIn, TOut> selectionFunc, IList<StreamIdentity<TIn>> streamIdentities);
+        Task<IStreamProcessorSelectAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Func<TIn, TOut> selectionFunc, IList<StreamIdentity> streamIdentities);
         
-        Task<IStreamProcessorWhereAggregate<TIn>> CreateWhere<TIn>(Func<TIn, bool> filterFunc, IList<StreamIdentity<TIn>> streamIdentities);
+        Task<IStreamProcessorWhereAggregate<TIn>> CreateWhere<TIn>(Func<TIn, bool> filterFunc, IList<StreamIdentity> streamIdentities);
     }
 }
