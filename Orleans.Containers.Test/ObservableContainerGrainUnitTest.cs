@@ -40,7 +40,7 @@ namespace Orleans.Collections.Test
             int numContainers = 2;
             await collection.SetNumberOfNodes(numContainers);
 
-            var observedCollectionConsumer = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(_provider);
+            var observedCollectionConsumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(_provider);
             await observedCollectionConsumer.SetInput(await collection.GetStreamIdentities());
 
             var inputList = Enumerable.Range(0, 1000).Select(x => new DummyInt(x)).ToList();
@@ -57,11 +57,12 @@ namespace Orleans.Collections.Test
             int numContainers = 2;
             await collection.SetNumberOfNodes(numContainers);
 
-            var observedCollectionConsumer = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(_provider);
+            var observedCollectionConsumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(_provider);
             await observedCollectionConsumer.SetInput(await collection.GetStreamIdentities());
 
             var inputList = Enumerable.Range(0, 1000).Select(x => new DummyInt(x)).ToList();
             var references = await collection.BatchAdd(inputList);
+            Assert.AreEqual(inputList.Count, await collection.Count());
 
             observedCollectionConsumer.Items.Clear();
             var value = (DummyInt) await collection.ExecuteSync(x => x, references.First());
@@ -71,6 +72,7 @@ namespace Orleans.Collections.Test
             var receivedItem = observedCollectionConsumer.Items.First();
             Assert.IsFalse(receivedItem.Reference.Exists);
             Assert.AreEqual(value, receivedItem.Item);
+            Assert.AreEqual(inputList.Count - 1, await collection.Count());
         }
     }
 }

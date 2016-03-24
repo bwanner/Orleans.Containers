@@ -14,106 +14,55 @@ namespace Orleans.Collections
     /// </summary>
     public class ContainerNodeGrain<T> : Grain, IContainerNodeGrain<T>
     {
-        protected IList<T> Collection;
-        protected SingleStreamProvider<ContainerHostedElement<T>> StreamProvider;
+        protected ContainerElementList<T> List;
+        protected SingleStreamProvider<ContainerElement<T>> StreamProvider;
         private SingleStreamConsumer<T> _streamConsumer;
         private const string StreamProviderName = "CollectionStreamProvider";
 
-        public async Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
+        public virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
-            var newReferences = await InternalAddItems(items);
-
-            return newReferences;
+            return List.AddRange(items);
         }
 
         public async Task EnumerateItems(ICollection<IBatchItemAdder<T>> adders)
         {
-            await adders.BatchAdd(Collection);
+            await adders.BatchAdd(List.Elements);
         }
 
         public Task Clear()
         {
-            Collection.Clear();
+            List.Clear();
             return TaskDone.Done;
         }
 
         public Task<bool> Contains(T item)
         {
-            return Task.FromResult(Collection.Contains(item));
+            return List.Contains(item);
         }
 
         public Task<int> Count()
         {
-            return Task.FromResult(Collection.Count);
+            return List.Count();
         }
 
-
-        public async Task<bool> Remove(T item)
+        public virtual Task<bool> Remove(ContainerElementReference<T> reference)
         {
-            return await InternalRemove(item);
-        }
-
-        protected virtual Task<bool> InternalRemove(T item)
-        {
-            return Task.FromResult(Collection.Remove(item));
-        }
-
-        public async Task<bool> Remove(ContainerElementReference<T> reference)
-        {
-            if (!reference.ContainerId.Equals(this.GetPrimaryKey()))
-            {
-                throw new ArgumentException();
-            }
-
-            return await InternalRemove(reference);
-        }
-
-        protected virtual Task<bool> InternalRemove(ContainerElementReference<T> reference)
-        {
-            if (Collection.Count < reference.Offset)
-            {
-                return Task.FromResult(false);
-            }
-
-            Collection.RemoveAt(reference.Offset);
-
-            return Task.FromResult(true);
+            return List.Remove(reference);
         }
 
         public async Task<int> EnumerateToStream(int? transactionId = null)
         {
-            var hostedItems = Collection.Select((value, index) => new ContainerHostedElement<T>(GetReferenceForItem(index), value)).ToList();
+            var hostedItems = List.Elements.Select((value, index) => new ContainerElement<T>(GetReferenceForItem(index), value)).ToList();
 
             return await StreamProvider.SendItems(hostedItems, true, transactionId);
         }
 
         public override async Task OnActivateAsync()
         {
-            Collection = new List<T>();
-            StreamProvider = new SingleStreamProvider<ContainerHostedElement<T>>(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
+            List = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
+            StreamProvider = new SingleStreamProvider<ContainerElement<T>>(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
             _streamConsumer = new SingleStreamConsumer<T>(GetStreamProvider(StreamProviderName), this, TearDown);
             await base.OnActivateAsync();
-        }
-
-        protected virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> InternalAddItems(IEnumerable<T> batch)
-        {
-            lock (Collection)
-            {
-                var oldCount = Collection.Count;
-                foreach (var item in batch)
-                {
-                    Collection.Add(item);
-                }
-
-                IReadOnlyCollection<ContainerElementReference<T>> newReferences =
-                    Enumerable.Range(oldCount, Collection.Count - oldCount).Select(i => GetReferenceForItem(i)).ToList();
-                return Task.FromResult(newReferences);
-            }
-        }
-
-        protected T GetItemAt(int offset)
-        {
-            return Collection[offset];
         }
 
         protected ContainerElementReference<T> GetReferenceForItem(int offset, bool exists = true)
@@ -122,7 +71,7 @@ namespace Orleans.Collections
                 this.AsReference<IContainerNodeGrain<T>>(), exists);
         }
 
-        public async Task<StreamIdentity<ContainerHostedElement<T>>> GetStreamIdentity()
+        public async Task<StreamIdentity<ContainerElement<T>>> GetStreamIdentity()
         {
             return await StreamProvider.GetStreamIdentity();
         }
@@ -158,16 +107,12 @@ namespace Orleans.Collections
         {
             if (reference != null)
             {
-                if (!reference.ContainerId.Equals(this.GetPrimaryKey()))
-                {
-                    throw new InvalidOperationException();
-                }
-                var curItem = GetItemAt(reference.Offset);
+                var curItem = List[reference];
                 action(curItem, state);
             }
             else
             {
-                foreach (var item in Collection)
+                foreach (var item in List.Elements)
                 {
                     action(item, state);
                 }
@@ -187,14 +132,14 @@ namespace Orleans.Collections
             {
                 throw new InvalidOperationException();
             }
-            var curItem = GetItemAt(reference.Offset);
+            var curItem = List[reference];
             var result = func(curItem, state);
             return Task.FromResult(result);
         }
 
         public Task<IList<object>> ExecuteSync(Func<T, object, object> func, object state)
         {
-            IList<object> results = Collection.Select(item => func(item, state)).ToList();
+            IList<object> results = List.Elements.Select(item => func(item, state)).ToList();
             return Task.FromResult(results);
         }
 
@@ -212,17 +157,13 @@ namespace Orleans.Collections
         {
             if (reference != null)
             {
-                if (!this.GetPrimaryKey().Equals(reference.ContainerId))
-                {
-                    throw new InvalidOperationException();
-                }
-                var curItem = GetItemAt(reference.Offset);
+                var curItem = List[reference];
                 await func(curItem, state);
             }
 
             else
             {
-                foreach (var item in Collection)
+                foreach (var item in List.Elements)
                 {
                     await func(item, state);
                 }
@@ -236,7 +177,7 @@ namespace Orleans.Collections
 
         public async Task<IList<object>> ExecuteAsync(Func<T, object, Task<object>> func, object state)
         {
-            var results = Collection.Select(item => func(item, state)).ToList();
+            var results = List.Elements.Select(item => func(item, state)).ToList();
             var resultSet = await Task.WhenAll(results);
             return new List<object>(resultSet);
         }
@@ -248,18 +189,14 @@ namespace Orleans.Collections
 
         public async Task<object> ExecuteAsync(Func<T, object, Task<object>> func, object state, ContainerElementReference<T> reference)
         {
-            if (!this.GetPrimaryKey().Equals(reference.ContainerId))
-            {
-                throw new InvalidOperationException();
-            }
-            var curItem = GetItemAt(reference.Offset);
+            var curItem = List[reference];
             var result = await func(curItem, state);
             return result;
         }
 
         public async Task Visit(ItemMessage<T> message)
         {
-            await InternalAddItems(message.Items);
+            await AddRange(message.Items);
         }
 
         public Task Visit(TransactionMessage transactionMessage)

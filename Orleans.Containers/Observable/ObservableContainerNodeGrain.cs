@@ -14,75 +14,50 @@ namespace Orleans.Collections.Observable
             await base.OnActivateAsync();
         }
 
-        protected override async Task<IReadOnlyCollection<ContainerElementReference<T>>> InternalAddItems(IEnumerable<T> batch)
+        public override async Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
-            List<ContainerHostedElement<T>> addArgs;
-            lock (Collection)
-            {
-                var oldCount = Collection.Count;
-                foreach (var item in batch)
-                {
-                    Collection.Add(item);
-                }
-                addArgs = Enumerable.Range(oldCount, Collection.Count - oldCount).Select(i => new ContainerHostedElement<T>(GetReferenceForItem(i, true), Collection[i])).ToList();
-            }
-            await StreamProvider.SendItems(addArgs, false);
-            return addArgs.Select(x => x.Reference).ToList() as IReadOnlyCollection<ContainerElementReference<T>>;
+            var elementReferences = await base.AddRange(items);
+            var containerElements = elementReferences.Select(r => new ContainerElement<T>(r, List[r])).ToList();
+
+            await StreamProvider.SendItems(containerElements, false);
+            return elementReferences;
         }
 
-        protected override async Task<bool> InternalRemove(T item)
+        public override async Task<bool> Remove(ContainerElementReference<T> reference)
         {
-            var index = Collection.IndexOf(item);
-            if (!Collection.Remove(item))
-            {
-                return false;
-            }
+            var item = List[reference];
+            await List.Remove(reference);
 
-            var removeArgs = new List<ContainerHostedElement<T>>(1) { new ContainerHostedElement<T>(GetReferenceForItem(index, false), item) };
+            var removeArgs = new List<ContainerElement<T>>(1) { new ContainerElement<T>(GetReferenceForItem(reference.Offset, false), item)};
             await StreamProvider.SendItems(removeArgs);
 
             return true;
         }
 
-        protected override async Task<bool> InternalRemove(ContainerElementReference<T> reference)
-        {
-            if (Collection.Count < reference.Offset)
-            {
-                return false;
-            }
-            var item = Collection[reference.Offset];
-            Collection.RemoveAt(reference.Offset);
+        //private void Foo()
+        //{
+        //    var t = new Task(async () => await HandleCollectionChange(null, null));
+        //    t.RunSynchronously();
+        //}
 
-            var removeArgs = new List<ContainerHostedElement<T>>(1) { new ContainerHostedElement<T>(GetReferenceForItem(reference.Offset, false), item)};
-            await StreamProvider.SendItems(removeArgs);
-
-            return true;
-        }
-
-        private void Foo()
-        {
-            var t = new Task(async () => await HandleCollectionChange(null, null));
-            t.RunSynchronously();
-        }
-
-        private async Task HandleCollectionChange(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            switch(e.Action)
-            {
-                case NotifyCollectionChangedAction.Add:
-                    int newItemsCount = e.NewItems.Count;
-                    var argsAdd = Enumerable.Range(e.NewStartingIndex, newItemsCount).Select(i => new ContainerHostedElement<T>(GetReferenceForItem(i, true), Collection[i])).ToList();
-                    await StreamProvider.SendItems(argsAdd);
-                break;
-                case NotifyCollectionChangedAction.Remove:
-                    int oldItemsCount = e.OldItems.Count;
-                    var argsDel = Enumerable.Range(e.OldStartingIndex, oldItemsCount).Select(i => new ContainerHostedElement<T>(GetReferenceForItem(i, false), Collection[i])).ToList();
-                    await StreamProvider.SendItems(argsDel);
-                break;
-                case NotifyCollectionChangedAction.Reset:
-                    throw new NotImplementedException();
-                break;
-            }
-        }
+        //private async Task HandleCollectionChange(object sender, NotifyCollectionChangedEventArgs e)
+        //{
+        //    switch(e.Action)
+        //    {
+        //        case NotifyCollectionChangedAction.Add:
+        //            int newItemsCount = e.NewItems.Count;
+        //            var argsAdd = Enumerable.Range(e.NewStartingIndex, newItemsCount).Select(i => new ContainerElement<T>(GetReferenceForItem(i, true), List[i])).ToList();
+        //            await StreamProvider.SendItems(argsAdd);
+        //        break;
+        //        case NotifyCollectionChangedAction.Remove:
+        //            int oldItemsCount = e.OldItems.Count;
+        //            var argsDel = Enumerable.Range(e.OldStartingIndex, oldItemsCount).Select(i => new ContainerElement<T>(GetReferenceForItem(i, false), List[i])).ToList();
+        //            await StreamProvider.SendItems(argsDel);
+        //        break;
+        //        case NotifyCollectionChangedAction.Reset:
+        //            throw new NotImplementedException();
+        //        break;
+        //    }
+        //}
     }
 }

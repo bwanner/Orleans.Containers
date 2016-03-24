@@ -2,7 +2,7 @@
 
 namespace Orleans.Collections
 {
-    public interface ICollectionOperations<T> : IBatchWriter<T>
+    public interface ICollectionOperations<T> 
     {
         /// <summary>
         /// Clears all items from the container.
@@ -23,13 +23,6 @@ namespace Orleans.Collections
         /// <param name="item">Value to check for.</param>
         /// <returns></returns>
         Task<bool> Contains(T item);
-
-        /// <summary>
-        /// Remove first equal item from collection.
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns>True if at least one reference has been removed.</returns>
-        Task<bool> Remove(T item);
 
         /// <summary>
         /// Removes reference from the collection.

@@ -28,7 +28,7 @@ namespace CollectionHost
 
             await container.ExecuteSync((i) => { i.Value += 2; }); // Pass action to container
 
-            var consumer = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(provider);
+            var consumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(provider);
             await consumer.SetInput(await container.GetStreamIdentities());
 
             var transactionId = await container.EnumerateToStream();
@@ -47,7 +47,7 @@ namespace CollectionHost
             var matchingItemConsumer = new MultiStreamListConsumer<int>(provider);
             await matchingItemConsumer.SetInput(await query.GetStreamIdentities());
 
-            var observedCollectionConsumer = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(provider);
+            var observedCollectionConsumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(provider);
             await observedCollectionConsumer.SetInput(await collection.GetStreamIdentities());
 
             var inputList = Enumerable.Range(0, 1000).Select(x => new DummyInt(x)).ToList();

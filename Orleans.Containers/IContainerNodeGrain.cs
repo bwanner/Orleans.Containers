@@ -7,7 +7,7 @@ namespace Orleans.Collections
     /// Grain holding a collection of elements of type T.
     /// </summary>
     /// <typeparam name="T">Element type that is held.</typeparam>
-    internal interface IContainerNodeGrain<T> : IGrainWithGuidKey, ICollectionOperations<T>, IBatchItemAdder<T>, IElementExecutor<T>, IStreamProcessorNodeGrain<T, ContainerHostedElement<T>>
+    internal interface IContainerNodeGrain<T> : IGrainWithGuidKey, ICollectionOperations<T>, IBatchWriter<T>, IBatchItemAdder<T>, IElementExecutor<T>, IStreamProcessorNodeGrain<T, ContainerElement<T>>
     {
         /// <summary>
         /// Enumerate a container to an item.

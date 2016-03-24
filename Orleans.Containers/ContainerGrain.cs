@@ -51,19 +51,6 @@ namespace Orleans.Collections
             return resultTask.Sum();
         }
 
-        public async Task<bool> Remove(T item)
-        {
-            var removed = false;
-            foreach (var container in _containers)
-            {
-                removed = await container.Remove(item);
-                if (removed)
-                    break;
-            }
-
-            return removed;
-        }
-
         public async Task<bool> Remove(ContainerElementReference<T> reference)
         {
             var container = _containers.First(c => c.GetPrimaryKey().Equals(reference.ContainerId));
@@ -222,11 +209,11 @@ namespace Orleans.Collections
             await Task.WhenAll(_containers.Select(c => c.TransactionComplete(transactionId)));
         }
 
-        public async Task<IList<StreamIdentity<ContainerHostedElement<T>>>> GetStreamIdentities()
+        public async Task<IList<StreamIdentity<ContainerElement<T>>>> GetStreamIdentities()
         {
             var streamTasks = await Task.WhenAll(_containers.Select(c => c.GetStreamIdentity()));
 
-            return new List<StreamIdentity<ContainerHostedElement<T>>>(streamTasks);
+            return new List<StreamIdentity<ContainerElement<T>>>(streamTasks);
         }
 
         public Task<bool> IsTearedDown()

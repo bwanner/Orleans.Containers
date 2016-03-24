@@ -4,7 +4,7 @@ using Orleans.Streams;
 
 namespace Orleans.Collections
 {
-    public interface IContainerGrain<T> : IGrainWithGuidKey, ICollectionOperations<T>, IBatchWriteable<T>, IElementExecutor<T>,IStreamProcessorAggregate<T, ContainerHostedElement<T>>
+    public interface IContainerGrain<T> : IGrainWithGuidKey, ICollectionOperations<T>, IBatchWriteable<T>, IElementExecutor<T>,IStreamProcessorAggregate<T, ContainerElement<T>>
     {
         /// <summary>
         /// Sets the number of containers to use for this collection. Only increase of size is supported.

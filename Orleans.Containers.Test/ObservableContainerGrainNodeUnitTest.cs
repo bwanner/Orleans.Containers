@@ -45,8 +45,8 @@ namespace Orleans.Collections.Test
 
             var container = GetRandomObservableContainerGrain<int>();
 
-            var resultConsumer = new MultiStreamListConsumer<ContainerHostedElement<int>>(_provider);
-            await resultConsumer.SetInput(new List<StreamIdentity<ContainerHostedElement<int>>>() { await container.GetStreamIdentity()});
+            var resultConsumer = new MultiStreamListConsumer<ContainerElement<int>>(_provider);
+            await resultConsumer.SetInput(new List<StreamIdentity<ContainerElement<int>>>() { await container.GetStreamIdentity()});
 
             Assert.AreEqual(0, resultConsumer.Items.Count);
 
