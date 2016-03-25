@@ -15,7 +15,7 @@ namespace Orleans.Collections
     public class ContainerNodeGrain<T> : Grain, IContainerNodeGrain<T>
     {
         private const string StreamProviderName = "CollectionStreamProvider";
-        private StreamMessageDispatchReceiver _streamMessageDispatchReceiver;
+        protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
         private SingleStreamTransactionReceiver _streamTransactionReceiver;
         protected ContainerElementList<T> List;
         protected SingleStreamTransactionSender<ContainerElement<T>> StreamTransactionSender;
@@ -30,7 +30,7 @@ namespace Orleans.Collections
             await adders.BatchAdd(List.Elements);
         }
 
-        public Task Clear()
+        public virtual Task Clear()
         {
             List.Clear();
             return TaskDone.Done;
@@ -156,7 +156,7 @@ namespace Orleans.Collections
 
         public async Task SetInput(StreamIdentity inputStream)
         {
-            await _streamMessageDispatchReceiver.Subscribe(inputStream.StreamIdentifier);
+            await StreamMessageDispatchReceiver.Subscribe(inputStream);
         }
 
         public Task TransactionComplete(int transactionId)
@@ -171,7 +171,7 @@ namespace Orleans.Collections
 
         public async Task<bool> IsTearedDown()
         {
-            var tearDownStates = await Task.WhenAll(_streamMessageDispatchReceiver.IsTearedDown(), StreamMessageSender.IsTearedDown());
+            var tearDownStates = await Task.WhenAll(StreamMessageDispatchReceiver.IsTearedDown(), StreamMessageSender.IsTearedDown());
 
             return tearDownStates[0] && tearDownStates[1];
         }
@@ -183,12 +183,12 @@ namespace Orleans.Collections
 
         public override async Task OnActivateAsync()
         {
-            List = CreateContainerElementList();
             StreamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
             StreamTransactionSender = new SingleStreamTransactionSender<ContainerElement<T>>(StreamMessageSender);
-            _streamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), TearDown);
-            _streamTransactionReceiver = new SingleStreamTransactionReceiver(_streamMessageDispatchReceiver);
-            _streamMessageDispatchReceiver.Register<ItemMessage<T>>(ProcessItemMessage);
+            StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), TearDown);
+            _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
+            StreamMessageDispatchReceiver.Register<ItemMessage<T>>(ProcessItemMessage);
+            List = CreateContainerElementList();
             await base.OnActivateAsync();
         }
 

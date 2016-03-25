@@ -76,7 +76,7 @@ namespace Orleans.Streams.Endpoints
                 var dispatcher = new StreamMessageDispatchReceiver(_streamProvider, null);
                 var consumer = new SingleStreamTransactionReceiver(dispatcher);
 
-                await dispatcher.Subscribe(identity.StreamIdentifier);
+                await dispatcher.Subscribe(identity);
                 dispatcher.Register<ItemMessage<T>>(ProcessItemMessage);
                 dispatcher.Register<TransactionMessage>(ProcessTransactionMessage);
 

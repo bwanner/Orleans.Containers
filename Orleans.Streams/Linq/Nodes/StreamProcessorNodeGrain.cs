@@ -15,7 +15,7 @@ namespace Orleans.Streams.Linq.Nodes
 
         public async Task SetInput(StreamIdentity inputStream)
         {
-            await StreamMessageDispatchReceiver.Subscribe(inputStream.StreamIdentifier);
+            await StreamMessageDispatchReceiver.Subscribe(inputStream);
         }
 
         public Task TransactionComplete(int transactionId)

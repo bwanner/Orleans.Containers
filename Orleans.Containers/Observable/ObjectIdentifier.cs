@@ -2,6 +2,7 @@
 
 namespace Orleans.Collections.Observable
 {
+    [Serializable]
     public class ObjectIdentifier
     {
         public readonly Guid ContainerId;

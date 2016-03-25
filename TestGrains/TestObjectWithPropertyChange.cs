@@ -5,6 +5,7 @@ using Orleans.Collections.Observable;
 
 namespace TestGrains
 {
+    [Serializable]
     public class TestObjectWithPropertyChange : DummyInt, IContainerElementNotifyPropertyChanged, INotifyPropertyChanged
     {
         private int _value;

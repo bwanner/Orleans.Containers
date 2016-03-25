@@ -16,9 +16,9 @@ namespace Orleans.Collections.Observable
 
         protected override ContainerElementList<T> CreateContainerElementList()
         {
-            var list = new ObservableContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IObservableContainerNodeGrain<T>>());
-
-
+            var list = new ObservableContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IObservableContainerNodeGrain<T>>(), StreamMessageDispatchReceiver);
+            // Forward all property changes
+            StreamMessageDispatchReceiver.Register<ItemPropertyChangedMessage>(StreamMessageSender.SendMessage);
             return list;
         }
 
@@ -41,6 +41,18 @@ namespace Orleans.Collections.Observable
             await StreamTransactionSender.SendItems(removeArgs);
 
             return true;
+        }
+
+        public override async Task Clear()
+        {
+            var removedItems = List.ToList();
+            foreach (var removedItem in removedItems)
+            {
+                removedItem.Reference = new ContainerElementReference<T>(removedItem.Reference.ContainerId, removedItem.Reference.Offset, null, null, false);
+            }
+
+            await base.Clear();
+            await StreamTransactionSender.SendItems(removedItems);
         }
 
         //private void Foo()

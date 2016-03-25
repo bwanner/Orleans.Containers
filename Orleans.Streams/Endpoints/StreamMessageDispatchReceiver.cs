@@ -13,7 +13,7 @@ namespace Orleans.Streams.Endpoints
         private StreamSubscriptionHandle<IStreamMessage> _streamHandle;
         private bool _tearDownExecuted;
 
-        public StreamMessageDispatchReceiver(IStreamProvider streamProvider, Func<Task> tearDownFunc)
+        public StreamMessageDispatchReceiver(IStreamProvider streamProvider, Func<Task> tearDownFunc = null)
         {
             _streamProvider = streamProvider;
             _tearDownFunc = tearDownFunc;
@@ -34,10 +34,10 @@ namespace Orleans.Streams.Endpoints
             }
         }
 
-        public async Task Subscribe(Tuple<Guid, string> streamIdentifier)
+        public async Task Subscribe(StreamIdentity streamIdentity)
         {
             _tearDownExecuted = false;
-            var messageStream = _streamProvider.GetStream<IStreamMessage>(streamIdentifier.Item1, streamIdentifier.Item2);
+            var messageStream = _streamProvider.GetStream<IStreamMessage>(streamIdentity.StreamIdentifier.Item1, streamIdentity.StreamIdentifier.Item2);
 
             _streamHandle =
                 await messageStream.SubscribeAsync((message, token) => Visit(message), async () => await TearDown());
