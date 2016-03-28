@@ -10,23 +10,23 @@ namespace Orleans.Collections
     /// <summary>
     ///     Stores elements in a container context and manages their references.
     /// </summary>
-    public class ContainerElementList<T> : ICollectionOperations<T>, IBatchItemAdder<T>, IEnumerable<ContainerElement<T>>
+    public class ContainerElementList<T> : ICollectionOperations<T>, IEnumerable<ContainerElement<T>>
     {
         private readonly Guid _containerId;
         private readonly IElementExecutor<T> _executorGrainReference;
         private readonly IElementExecutor<T> _executorReference;
         protected List<T> Collection;
 
-        public T this[ContainerElementReference<T> reference]
+        public T this[ContainerElementAddress<T> address]
         {
             get
             {
-                if (!reference.ContainerId.Equals(_containerId))
+                if (!address.ContainerId.Equals(_containerId))
                 {
                     throw new ArgumentException();
                 }
 
-                return Collection[reference.Offset];
+                return Collection[address.Offset];
             }
         }
 
@@ -40,7 +40,7 @@ namespace Orleans.Collections
             Collection = new List<T>();
         }
 
-        public virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
+        public virtual IReadOnlyCollection<ContainerElementReference<T>> AddRange(IEnumerable<T> items)
         {
             var oldCount = Collection.Count;
             foreach (var item in items)
@@ -50,7 +50,7 @@ namespace Orleans.Collections
 
             IReadOnlyCollection<ContainerElementReference<T>> newReferences =
                 Enumerable.Range(oldCount, Collection.Count - oldCount).Select(i => GetReferenceForItem(i)).ToList();
-            return Task.FromResult(newReferences);
+            return newReferences;
         }
 
         public virtual Task Clear()
@@ -67,6 +67,18 @@ namespace Orleans.Collections
         public Task<int> Count()
         {
             return Task.FromResult(Collection.Count);
+        }
+
+        public ContainerElementReference<T> Remove(T item)
+        {
+            var index = Collection.IndexOf(item);
+            if (index == -1)
+            {
+                throw new ArgumentException(nameof(item));
+            }
+
+            Collection.Remove(item);
+            return GetReferenceForItem(index, false);
         }
 
         public virtual Task<bool> Remove(ContainerElementReference<T> reference)

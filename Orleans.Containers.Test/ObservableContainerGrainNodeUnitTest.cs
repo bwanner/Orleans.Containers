@@ -105,6 +105,7 @@ namespace Orleans.Collections.Test
             Assert.IsTrue(resultConsumer.Items.TrueForAll(i => !i.Reference.Exists));
         }
 
+        [Ignore]
         [TestMethod]
         public async Task TestPropertyChangedObjectChangeIsAppliedAndForwarded()
         {

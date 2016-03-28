@@ -4,27 +4,29 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Streams.Messages;
 
 namespace Orleans.Collections.Observable
 {
     public class ObservableContainerNodeGrain<T> : ContainerNodeGrain<T>, IObservableContainerNodeGrain<T>
     {
+        private DistributedPropertyChangedProcessor<T> _propertyChangedProcessor;
+
         public override async Task OnActivateAsync()
         {
             await base.OnActivateAsync();
-        }
+            _propertyChangedProcessor = new DistributedPropertyChangedProcessor<T>();
 
-        protected override ContainerElementList<T> CreateContainerElementList()
-        {
-            var list = new ObservableContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IObservableContainerNodeGrain<T>>(), StreamMessageDispatchReceiver);
+            StreamMessageDispatchReceiver.Register<ItemMessage<T>>(_propertyChangedProcessor.ProcessItemMessage);
+            StreamMessageDispatchReceiver.Register<ItemPropertyChangedMessage>(_propertyChangedProcessor.ProcessItemPropertyChangedMessage);
             // Forward all property changes
             StreamMessageDispatchReceiver.Register<ItemPropertyChangedMessage>(StreamMessageSender.SendMessage);
-            return list;
         }
 
         public override async Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
             var elementReferences = await base.AddRange(items);
+            _propertyChangedProcessor.AddItems(items);
             var containerElements = elementReferences.Select(r => new ContainerElement<T>(r, List[r])).ToList();
 
             await StreamTransactionSender.SendItems(containerElements, false);
@@ -35,6 +37,7 @@ namespace Orleans.Collections.Observable
         {
             var item = List[reference];
             await List.Remove(reference);
+            _propertyChangedProcessor.Remove(item);
 
             var deletedReference = new ContainerElementReference<T>(reference.ContainerId, reference.Offset, null, null, false);
             var removeArgs = new List<ContainerElement<T>>(1) { new ContainerElement<T>(deletedReference, item)};

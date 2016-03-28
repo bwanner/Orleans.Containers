@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Orleans.Streams.Endpoints;
+using Orleans.Streams.Messages;
 
 namespace Orleans.Collections.Observable
 {
@@ -14,62 +15,56 @@ namespace Orleans.Collections.Observable
     ///     are stored for supporting property changed across containers.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class ObservableContainerElementList<T> : ContainerElementList<T>
+    public class DistributedPropertyChangedProcessor<T>
     {
-        private readonly Dictionary<ObjectIdentifier, IContainerElementNotifyPropertyChanged> _knownObjects = new Dictionary<ObjectIdentifier, IContainerElementNotifyPropertyChanged>();
+        protected readonly Dictionary<ObjectIdentifier, IContainerElementNotifyPropertyChanged> KnownObjects = new Dictionary<ObjectIdentifier, IContainerElementNotifyPropertyChanged>();
 
-        public int KnownObjectCount => _knownObjects.Count;
+        public int KnownObjectCount => KnownObjects.Count;
 
-        public ObservableContainerElementList(Guid containerId, IElementExecutor<T> executorReference, IElementExecutor<T> executorGrainReference,
-            StreamMessageDispatchReceiver dispatchReceiver = null)
-            : base(containerId, executorReference, executorGrainReference)
+        public Task ProcessItemPropertyChangedMessage(ItemPropertyChangedMessage arg)
         {
-            dispatchReceiver?.Register<ItemPropertyChangedMessage>(ProcessItemPropertyChangedMessage);
-        }
-
-        private Task ProcessItemPropertyChangedMessage(ItemPropertyChangedMessage arg)
-        {
-            var matchingObject = _knownObjects[arg.ChangedEventArgs.ObjectIdentifier];
+            var matchingObject = KnownObjects[arg.ChangedEventArgs.ObjectIdentifier];
             matchingObject.ApplyChange(arg.ChangedEventArgs);
             return TaskDone.Done;
         }
 
-        public override async Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
+        public Task ProcessItemMessage(ItemMessage<T> message)
+        {
+            AddItems(message.Items);
+            return TaskDone.Done;
+        }
+
+        public void AddItems(IEnumerable<T> items)
         {
             foreach (var item in items)
             {
                 ExecuteForElementsWithPropertyChangedSupport(item, AddToKnownObjects);
             }
-
-            return await base.AddRange(items);
         }
 
-        public override Task Clear()
+        public void Clear()
         {
-            _knownObjects.Clear();
-            return base.Clear();
+            KnownObjects.Clear();
         }
 
-        public override async Task<bool> Remove(ContainerElementReference<T> reference)
+        public void Remove(object obj)
         {
-            var obj = this[reference];
             ExecuteForElementsWithPropertyChangedSupport(obj, RemoveFromKnownObjects);
-            return await base.Remove(reference);
         }
 
         public bool IsKnownObject(ObjectIdentifier identifier)
         {
-            return _knownObjects.ContainsKey(identifier);
+            return KnownObjects.ContainsKey(identifier);
         }
-
+ 
         private void AddToKnownObjects(ObjectIdentifier identifier, IContainerElementNotifyPropertyChanged target)
         {
-            _knownObjects.Add(identifier, target);
+            KnownObjects.Add(identifier, target);
         }
 
         private void RemoveFromKnownObjects(ObjectIdentifier identifier, IContainerElementNotifyPropertyChanged target)
         {
-            _knownObjects.Remove(identifier);
+            KnownObjects.Remove(identifier);
         }
 
         private void ExecuteForElementsWithPropertyChangedSupport(object root, Action<ObjectIdentifier, IContainerElementNotifyPropertyChanged> action)

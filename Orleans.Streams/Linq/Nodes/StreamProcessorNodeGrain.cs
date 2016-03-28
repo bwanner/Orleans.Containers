@@ -11,7 +11,7 @@ namespace Orleans.Streams.Linq.Nodes
         private SingleStreamTransactionReceiver _streamTransactionReceiver;
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
         protected SingleStreamTransactionSender<TOut> StreamTransactionSender;
-        private StreamMessageSender _streamMessageSender;
+        protected StreamMessageSender StreamMessageSender;
 
         public async Task SetInput(StreamIdentity inputStream)
         {
@@ -25,7 +25,7 @@ namespace Orleans.Streams.Linq.Nodes
 
         public async Task<StreamIdentity> GetStreamIdentity()
         {
-            return await _streamMessageSender.GetStreamIdentity();
+            return await StreamMessageSender.GetStreamIdentity();
         }
 
         public virtual async Task TearDown()
@@ -36,17 +36,17 @@ namespace Orleans.Streams.Linq.Nodes
                 StreamMessageDispatchReceiver = null;
             }
 
-            if (_streamMessageSender != null)
+            if (StreamMessageSender != null)
             {
-                await _streamMessageSender.TearDown();
-                _streamMessageSender = null;
+                await StreamMessageSender.TearDown();
+                StreamMessageSender = null;
             }
         }
 
         public async Task<bool> IsTearedDown()
         {
             var consumerTearDownState = (StreamMessageDispatchReceiver == null) || await StreamMessageDispatchReceiver.IsTearedDown();
-            var providerTearDownState = (_streamMessageSender == null) || await _streamMessageSender.IsTearedDown();
+            var providerTearDownState = (StreamMessageSender == null) || await StreamMessageSender.IsTearedDown();
 
             return consumerTearDownState && providerTearDownState;
         }
@@ -54,13 +54,18 @@ namespace Orleans.Streams.Linq.Nodes
         public override Task OnActivateAsync()
         {
             base.OnActivateAsync();
-            _streamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderNamespace), this.GetPrimaryKey());
-            StreamTransactionSender = new SingleStreamTransactionSender<TOut>(_streamMessageSender);
+            StreamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderNamespace), this.GetPrimaryKey());
+            StreamTransactionSender = new SingleStreamTransactionSender<TOut>(StreamMessageSender);
             StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderNamespace), TearDown);
             _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
+            RegisterMessages();
+            return TaskDone.Done;
+        }
+
+        protected virtual void RegisterMessages()
+        {
             StreamMessageDispatchReceiver.Register<TransactionMessage>(ProcessTransactionMessage);
             StreamMessageDispatchReceiver.Register<ItemMessage<TIn>>(ProcessItemMessage);
-            return TaskDone.Done;
         }
 
         protected abstract Task ProcessItemMessage(ItemMessage<TIn> itemMessage);

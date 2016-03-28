@@ -22,7 +22,7 @@ namespace Orleans.Collections
 
         public virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
-            return List.AddRange(items);
+            return Task.FromResult(List.AddRange(items));
         }
 
         public async Task EnumerateItems(ICollection<IBatchItemAdder<T>> adders)
@@ -188,16 +188,11 @@ namespace Orleans.Collections
             StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), TearDown);
             _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
             StreamMessageDispatchReceiver.Register<ItemMessage<T>>(ProcessItemMessage);
-            List = CreateContainerElementList();
+            List = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
             await base.OnActivateAsync();
         }
 
         public StreamMessageSender StreamMessageSender { get; set; }
-
-        protected virtual ContainerElementList<T> CreateContainerElementList()
-        {
-            return new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
-        }
 
         protected virtual async Task ProcessItemMessage(ItemMessage<T> message)
         {
