@@ -64,7 +64,7 @@ namespace Orleans.Collections.Test
             var listConsumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(_provider);
             await listConsumer.SetInput(await distributedCollection.GetStreamIdentities());
 
-            var tid = await distributedCollection.EnumerateToStream();
+            var tid = await distributedCollection.EnumerateToSubscribers();
             await listConsumer.TransactionComplete(tid);
 
             Assert.AreEqual(l.Count, listConsumer.Items.Count);
@@ -90,7 +90,7 @@ namespace Orleans.Collections.Test
             var consumer = new MultiStreamListConsumer<ContainerElement<int>>(_provider);
             await consumer.SetInput(await distributedCollection.GetStreamIdentities());
 
-            var tid = await distributedCollection.EnumerateToStream();
+            var tid = await distributedCollection.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
             CollectionAssert.AreEquivalent(l, consumer.Items.Select(x => x.Item).ToList());
@@ -109,7 +109,7 @@ namespace Orleans.Collections.Test
             var consumer = new MultiStreamConsumer<ContainerElement<int>>(_provider);
             await consumer.SetInput(await distributedCollection.GetStreamIdentities());
 
-            var tid = await distributedCollection.EnumerateToStream();
+            var tid = await distributedCollection.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
             var deleteValue = (int) await distributedCollection.ExecuteSync(x => x, references.First());

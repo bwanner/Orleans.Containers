@@ -31,7 +31,7 @@ namespace CollectionHost
             var consumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(provider);
             await consumer.SetInput(await container.GetStreamIdentities());
 
-            var transactionId = await container.EnumerateToStream();
+            var transactionId = await container.EnumerateToSubscribers();
             await consumer.TransactionComplete(transactionId);
 
             Console.WriteLine(consumer.Items);

@@ -151,5 +151,50 @@ namespace Orleans.Collections.Test
             Assert.AreEqual(42, changeEventArgs.Value);
             Assert.AreEqual("Value", changeEventArgs.PropertyName);
         }
+
+
+        [TestMethod]
+        public async Task TestPropertyChangedMessageIsCreatedAndSent()
+        {
+            // Stream setup
+            var sender = new StreamMessageSender(_provider);
+
+            var container = GetRandomObservableContainerGrain<TestObjectWithPropertyChange>();
+            await container.SetInput(await sender.GetStreamIdentity());
+
+            var receiver = new StreamMessageDispatchReceiver(_provider);
+            await receiver.Subscribe(await container.GetStreamIdentity());
+            var propertyChangedMessages = new List<ItemPropertyChangedMessage>();
+            receiver.Register<ItemPropertyChangedMessage>(message =>
+            {
+                propertyChangedMessages.Add(message);
+                return TaskDone.Done;
+            });
+            var itemMessages = new List<ItemMessage<ContainerElement<TestObjectWithPropertyChange>>>();
+            receiver.Register<ItemMessage<ContainerElement<TestObjectWithPropertyChange>>>(message =>
+            {
+                itemMessages.Add(message);
+                return TaskDone.Done;
+            });
+            // End stream setup
+
+            var testObject = new TestObjectWithPropertyChange(1);
+
+            var hostedElements = await container.AddRange(new List<TestObjectWithPropertyChange>() { testObject });
+            Assert.AreEqual(1, itemMessages.Count);
+            var hostedElement = itemMessages.First().Items.First();
+
+            await container.ExecuteSync(o => { o.Value = 42; }, hostedElement.Reference);
+
+            // Test if change is applied to collection.
+            int newValueInContainer = (int)await container.ExecuteSync(i => i.Value, hostedElement.Reference);
+            Assert.AreEqual(42, newValueInContainer);
+
+            Assert.AreEqual(1, propertyChangedMessages.Count);
+            var changeEventArgs = propertyChangedMessages.First().ChangedEventArgs;
+            Assert.AreEqual(testObject.Identifier, changeEventArgs.ObjectIdentifier);
+            Assert.AreEqual(42, changeEventArgs.Value);
+            Assert.AreEqual("Value", changeEventArgs.PropertyName);
+        }
     }
 }

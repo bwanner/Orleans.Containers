@@ -22,6 +22,14 @@ namespace Orleans.Streams.Endpoints
             _queue = new Queue<IStreamMessage>();
         }
 
+        public StreamMessageSender(IStreamProvider provider, StreamIdentity targetStream)
+        {
+            _streamIdentity = targetStream;
+            _messageStream = provider.GetStream<IStreamMessage>(_streamIdentity.StreamIdentifier.Item1, _streamIdentity.StreamIdentifier.Item2);
+            _tearDownExecuted = false;
+            _queue = new Queue<IStreamMessage>();
+        }
+
         public async Task TearDown()
         {
             await _messageStream.OnCompletedAsync();

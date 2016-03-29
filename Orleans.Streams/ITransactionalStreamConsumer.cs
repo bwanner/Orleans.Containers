@@ -8,6 +8,6 @@ namespace Orleans.Streams
     {
         Task SetInput(StreamIdentity inputStream);
 
-        Task TransactionComplete(int transactionId);
+        Task TransactionComplete(Guid transactionId);
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -20,6 +21,6 @@ namespace Orleans.Streams
         /// </summary>
         /// <param name="transactionId">Transaction id to await.</param>
         /// <returns></returns>
-        Task TransactionComplete(int transactionId);
+        Task TransactionComplete(Guid transactionId);
     }
 }

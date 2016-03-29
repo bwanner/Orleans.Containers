@@ -11,17 +11,18 @@ namespace Orleans.Streams.Endpoints
     /// <typeparam name="T">Data type transmitted via the stream</typeparam>
     public class SingleStreamTransactionSender<T>
     {
-        private int _lastTransactionId = -1;
         private readonly StreamMessageSender _sender;
+
+        public StreamMessageSender Sender => _sender;
 
         public SingleStreamTransactionSender(StreamMessageSender sender)
         {
             _sender = sender;
         }
 
-        public async Task<int> SendItems(IEnumerable<T> items, bool useTransaction = true, int? transactionId = null)
+        public async Task<Guid> SendItems(IEnumerable<T> items, bool useTransaction = true, Guid? transactionId = null)
         {
-            var curTransactionId = transactionId ?? ++_lastTransactionId;
+            var curTransactionId = transactionId ?? Guid.NewGuid();
             if (useTransaction)
             {
                 await StartTransaction(curTransactionId);
@@ -36,17 +37,17 @@ namespace Orleans.Streams.Endpoints
             return curTransactionId;
         }
 
-        public Task<int> SendItem(T item, bool useTransaction = true, int? transactionId = null)
+        public Task<Guid> SendItem(T item, bool useTransaction = true, Guid? transactionId = null)
         {
             return SendItems(new List<T>(1) {item}, useTransaction, transactionId);
         }
 
-        public async Task StartTransaction(int transactionId)
+        public async Task StartTransaction(Guid transactionId)
         {
             await _sender.SendMessage(new TransactionMessage {State = TransactionState.Start, TransactionId = transactionId});
         }
 
-        public async Task EndTransaction(int transactionId)
+        public async Task EndTransaction(Guid transactionId)
         {
             await _sender.SendMessage(new TransactionMessage {State = TransactionState.End, TransactionId = transactionId});
         }

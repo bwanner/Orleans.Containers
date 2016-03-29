@@ -76,6 +76,7 @@
     <Compile Include="ContainerElementList.cs" />
     <Compile Include="ContainerElement.cs" />
     <Compile Include="ContainerElementAddress.cs" />
+    <Compile Include="IElementEnumerator.cs" />
     <Compile Include="ItemPropertyChangedMessage.cs" />
     <Compile Include="Observable\ContainerElementPropertyChangedEventArgs.cs" />
     <Compile Include="Observable\IContainerNotifyPropertyChanged.cs" />
@@ -89,7 +90,7 @@
     <Compile Include="ContainerNodeGrain.cs" />
     <Compile Include="IBatchItemAdder.cs" />
     <Compile Include="IBatchWriteable.cs" />
-    <Compile Include="IBatchWriter.cs" />
+    <Compile Include="IElementEnumeratorNode.cs" />
     <Compile Include="ICollectionOperations.cs" />
     <Compile Include="IContainerNodeGrain.cs" />
     <Compile Include="IContainerGrain.cs" />

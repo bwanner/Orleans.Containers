@@ -90,7 +90,7 @@ namespace Orleans.Streams.Endpoints
         /// </summary>
         /// <param name="transactionId">Transaction identifier.</param>
         /// <returns></returns>
-        public async Task TransactionComplete(int transactionId)
+        public async Task TransactionComplete(Guid transactionId)
         {
             await Task.WhenAll(TransactionManagers.Select(c => c.TransactionComplete(transactionId)));
         }

@@ -10,7 +10,7 @@ namespace Orleans.Streams.Endpoints
     /// </summary>
     public class SingleStreamTransactionReceiver
     {
-        private readonly Dictionary<int, TaskCompletionSource<Task>> _awaitedTransactions;
+        private readonly Dictionary<Guid, TaskCompletionSource<Task>> _awaitedTransactions;
 
         /// <summary>
         /// Constructor.
@@ -18,7 +18,7 @@ namespace Orleans.Streams.Endpoints
         /// <param name="dispatchReceiver">Dispatcher used to subscribe to transaction message.</param>
         public SingleStreamTransactionReceiver(StreamMessageDispatchReceiver dispatchReceiver)
         {
-            _awaitedTransactions = new Dictionary<int, TaskCompletionSource<Task>>();
+            _awaitedTransactions = new Dictionary<Guid, TaskCompletionSource<Task>>();
             dispatchReceiver.Register<TransactionMessage>(ProcessTransactionMessage);
         }
 
@@ -27,7 +27,7 @@ namespace Orleans.Streams.Endpoints
         /// </summary>
         /// <param name="transactionId">Transaction identifier.</param>
         /// <returns></returns>
-        public async Task TransactionComplete(int transactionId)
+        public async Task TransactionComplete(Guid transactionId)
         {
             if (!_awaitedTransactions.ContainsKey(transactionId))
             {

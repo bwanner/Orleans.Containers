@@ -17,43 +17,54 @@ namespace Orleans.Collections
         private const string StreamProviderName = "CollectionStreamProvider";
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
         private SingleStreamTransactionReceiver _streamTransactionReceiver;
-        protected ContainerElementList<T> List;
+        protected ContainerElementList<T> Elements;
         protected SingleStreamTransactionSender<ContainerElement<T>> StreamTransactionSender;
 
         public virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
-            return Task.FromResult(List.AddRange(items));
+            return Task.FromResult(Elements.AddRange(items));
         }
 
-        public async Task EnumerateItems(ICollection<IBatchItemAdder<T>> adders)
+        protected SingleStreamTransactionSender<ContainerElement<T>> SetupSenderStream(StreamIdentity streamIdentity)
         {
-            await adders.BatchAdd(List.Elements);
+            var sender = new StreamMessageSender(GetStreamProvider(StreamProviderName), streamIdentity);
+            var transactionalSender = new SingleStreamTransactionSender<ContainerElement<T>>(sender);
+
+            return transactionalSender;
+        }
+
+        public async Task<Guid> EnumerateToStream(StreamIdentity streamIdentity, Guid transactionId)
+        {
+            var transactionalSender = SetupSenderStream(streamIdentity);
+            await transactionalSender.SendItems(Elements.ToList(), true, transactionId);
+            await transactionalSender.Sender.TearDown();
+            return transactionId;
         }
 
         public virtual Task Clear()
         {
-            List.Clear();
+            Elements.Clear();
             return TaskDone.Done;
         }
 
         public Task<bool> Contains(T item)
         {
-            return List.Contains(item);
+            return Elements.Contains(item);
         }
 
         public Task<int> Count()
         {
-            return List.Count();
+            return Elements.Count();
         }
 
         public virtual Task<bool> Remove(ContainerElementReference<T> reference)
         {
-            return List.Remove(reference);
+            return Elements.Remove(reference);
         }
 
-        public async Task<int> EnumerateToStream(int? transactionId = null)
+        public async Task<Guid> EnumerateToSubscribers(Guid? transactionId = null)
         {
-            var containerElements = List.ToList();
+            var containerElements = Elements.ToList();
 
             return await StreamTransactionSender.SendItems(containerElements, true, transactionId);
         }
@@ -67,17 +78,19 @@ namespace Orleans.Collections
         {
             if (reference != null)
             {
-                var curItem = List[reference];
+                var curItem = Elements[reference];
                 await func(curItem, state);
             }
 
             else
             {
-                foreach (var item in List.Elements)
+                foreach (var item in Elements.Elements)
                 {
                     await func(item, state);
                 }
             }
+
+            await StreamMessageSender.SendMessagesFromQueue();
         }
 
         public Task<IList<object>> ExecuteAsync(Func<T, Task<object>> func)
@@ -87,8 +100,9 @@ namespace Orleans.Collections
 
         public async Task<IList<object>> ExecuteAsync(Func<T, object, Task<object>> func, object state)
         {
-            var results = List.Elements.Select(item => func(item, state)).ToList();
+            var results = Elements.Elements.Select(item => func(item, state)).ToList();
             var resultSet = await Task.WhenAll(results);
+            await StreamMessageSender.SendMessagesFromQueue();
             return new List<object>(resultSet);
         }
 
@@ -99,8 +113,9 @@ namespace Orleans.Collections
 
         public async Task<object> ExecuteAsync(Func<T, object, Task<object>> func, object state, ContainerElementReference<T> reference)
         {
-            var curItem = List[reference];
+            var curItem = Elements[reference];
             var result = await func(curItem, state);
+            await StreamMessageSender.SendMessagesFromQueue();
             return result;
         }
 
@@ -109,22 +124,22 @@ namespace Orleans.Collections
             return ExecuteSync((x, state) => action(x), null, reference);
         }
 
-        public Task ExecuteSync(Action<T, object> action, object state, ContainerElementReference<T> reference = null)
+        public async Task ExecuteSync(Action<T, object> action, object state, ContainerElementReference<T> reference = null)
         {
             if (reference != null)
             {
-                var curItem = List[reference];
+                var curItem = Elements[reference];
                 action(curItem, state);
             }
             else
             {
-                foreach (var item in List.Elements)
+                foreach (var item in Elements.Elements)
                 {
                     action(item, state);
                 }
             }
 
-            return TaskDone.Done;
+            await StreamMessageSender.SendMessagesFromQueue();
         }
 
         public Task<IList<object>> ExecuteSync(Func<T, object> func)
@@ -132,21 +147,24 @@ namespace Orleans.Collections
             return ExecuteSync((x, state) => func(x), null);
         }
 
-        public Task<object> ExecuteSync(Func<T, object, object> func, object state, ContainerElementReference<T> reference)
+        public async Task<object> ExecuteSync(Func<T, object, object> func, object state, ContainerElementReference<T> reference)
         {
             if (!this.GetPrimaryKey().Equals(reference.ContainerId))
             {
                 throw new InvalidOperationException();
             }
-            var curItem = List[reference];
+            var curItem = Elements[reference];
             var result = func(curItem, state);
-            return Task.FromResult(result);
+
+            await StreamMessageSender.SendMessagesFromQueue();
+            return result;
         }
 
-        public Task<IList<object>> ExecuteSync(Func<T, object, object> func, object state)
+        public async Task<IList<object>> ExecuteSync(Func<T, object, object> func, object state)
         {
-            IList<object> results = List.Elements.Select(item => func(item, state)).ToList();
-            return Task.FromResult(results);
+            IList<object> results = Elements.Elements.Select(item => func(item, state)).ToList();
+            await StreamMessageSender.SendMessagesFromQueue();
+            return results;
         }
 
         public Task<object> ExecuteSync(Func<T, object> func, ContainerElementReference<T> reference = null)
@@ -159,7 +177,7 @@ namespace Orleans.Collections
             await StreamMessageDispatchReceiver.Subscribe(inputStream);
         }
 
-        public Task TransactionComplete(int transactionId)
+        public Task TransactionComplete(Guid transactionId)
         {
             return _streamTransactionReceiver.TransactionComplete(transactionId);
         }
@@ -188,7 +206,7 @@ namespace Orleans.Collections
             StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), TearDown);
             _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
             StreamMessageDispatchReceiver.Register<ItemMessage<T>>(ProcessItemMessage);
-            List = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
+            Elements = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
             await base.OnActivateAsync();
         }
 

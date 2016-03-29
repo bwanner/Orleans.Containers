@@ -16,6 +16,8 @@ namespace Orleans.Collections.Observable
         {
             await base.OnActivateAsync();
             _propertyChangedProcessor = new DistributedPropertyChangedProcessor<T>();
+            _propertyChangedProcessor.ContainerPropertyChanged +=
+                change => StreamMessageSender.AddToMessageQueue(new ItemPropertyChangedMessage(change)); 
 
             StreamMessageDispatchReceiver.Register<ItemMessage<T>>(_propertyChangedProcessor.ProcessItemMessage);
             StreamMessageDispatchReceiver.Register<ItemPropertyChangedMessage>(_propertyChangedProcessor.ProcessItemPropertyChangedMessage);
@@ -27,7 +29,7 @@ namespace Orleans.Collections.Observable
         {
             var elementReferences = await base.AddRange(items);
             _propertyChangedProcessor.AddItems(items);
-            var containerElements = elementReferences.Select(r => new ContainerElement<T>(r, List[r])).ToList();
+            var containerElements = elementReferences.Select(r => new ContainerElement<T>(r, Elements[r])).ToList();
 
             await StreamTransactionSender.SendItems(containerElements, false);
             return elementReferences;
@@ -35,8 +37,8 @@ namespace Orleans.Collections.Observable
 
         public override async Task<bool> Remove(ContainerElementReference<T> reference)
         {
-            var item = List[reference];
-            await List.Remove(reference);
+            var item = Elements[reference];
+            await Elements.Remove(reference);
             _propertyChangedProcessor.Remove(item);
 
             var deletedReference = new ContainerElementReference<T>(reference.ContainerId, reference.Offset, null, null, false);
@@ -48,7 +50,7 @@ namespace Orleans.Collections.Observable
 
         public override async Task Clear()
         {
-            var removedItems = List.ToList();
+            var removedItems = Elements.ToList();
             foreach (var removedItem in removedItems)
             {
                 removedItem.Reference = new ContainerElementReference<T>(removedItem.Reference.ContainerId, removedItem.Reference.Offset, null, null, false);

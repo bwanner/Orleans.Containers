@@ -10,7 +10,6 @@ namespace Orleans.Collections
     {
         private const int NumberContainersStart = 1;
         private List<IContainerNodeGrain<T>> _containers;
-        private int _lastTransactionId;
         private bool _tearDownExecuted;
 
         public Task<ICollection<IBatchItemAdder<T>>> GetItemAdders()
@@ -18,17 +17,6 @@ namespace Orleans.Collections
             ICollection<IBatchItemAdder<T>> readers = _containers.Cast<IBatchItemAdder<T>>().ToList();
 
             return Task.FromResult(readers);
-        }
-
-        public async Task EnumerateItems(ICollection<IBatchItemAdder<T>> consumers)
-        {
-            if (consumers.Count == 0)
-            {
-                return;
-            }
-
-            var tasks = _containers.Select(c => c.EnumerateItems(consumers)).ToList();
-            await Task.WhenAll(tasks);
         }
 
         public async Task Clear()
@@ -62,10 +50,20 @@ namespace Orleans.Collections
             return false;
         }
 
-        public async Task<int> EnumerateToStream(int batchSize)
+        public async Task<Guid> EnumerateToSubscribers(int batchSize)
         {
-            var transactionId = ++_lastTransactionId;
-            await Task.WhenAll(_containers.Select(c => c.EnumerateToStream(transactionId)));
+            var transactionId = Guid.NewGuid();
+            await Task.WhenAll(_containers.Select(c => c.EnumerateToSubscribers(transactionId)));
+
+            return transactionId;
+        }
+
+        public async Task<Guid> EnumerateToStream(params StreamIdentity[] streamIdentities)
+        {
+            var transactionId = Guid.NewGuid();
+            var assignedStreams = streamIdentities.Repeat().Take(_containers.Count);
+
+            await Task.WhenAll(assignedStreams.Zip(_containers, (identity, container) => container.EnumerateToStream(identity, transactionId)));
 
             return transactionId;
         }
@@ -204,7 +202,7 @@ namespace Orleans.Collections
                     .Select(t => t.Item1.SetInput(t.Item2)));
         }
 
-        public async Task TransactionComplete(int transactionId)
+        public async Task TransactionComplete(Guid transactionId)
         {
             await Task.WhenAll(_containers.Select(c => c.TransactionComplete(transactionId)));
         }
@@ -229,7 +227,6 @@ namespace Orleans.Collections
         public override async Task OnActivateAsync()
         {
             _containers = new List<IContainerNodeGrain<T>>();
-            _lastTransactionId = -1;
             await SetNumberOfNodes(NumberContainersStart);
             await base.OnActivateAsync();
         }

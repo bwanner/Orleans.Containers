@@ -65,7 +65,7 @@ namespace Orleans.Collections.Test
             var container = GetRandomContainerGrain<int>();
             var consumer = new MultiStreamListConsumer<ContainerElement<int>>(_provider);
             await consumer.SetInput(new List<StreamIdentity>() { await container.GetStreamIdentity() }); ;
-            var tid = await container.EnumerateToStream();
+            var tid = await container.EnumerateToSubscribers();
 
             await consumer.TransactionComplete(tid);
             Assert.AreEqual(0, consumer.Items.Count);
@@ -86,7 +86,7 @@ namespace Orleans.Collections.Test
             Assert.AreEqual(0, reference.First().Offset);
             Assert.AreEqual(container.GetPrimaryKey(), reference.First().ContainerId);
 
-            var tid = await container.EnumerateToStream();
+            var tid = await container.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
             CollectionAssert.AreEquivalent(l, consumer.Items.Select(x => x.Item).ToList());
@@ -106,14 +106,14 @@ namespace Orleans.Collections.Test
 
             // Action
             await container.ExecuteSync(x => { x.Value += 2; });
-            await container.EnumerateToStream();
+            await container.EnumerateToSubscribers();
             l.ForEach(x => x.Value += 2);
             CollectionAssert.AreEquivalent(l.Select(x => x.Value).ToList(), consumer.Items.Select(x => x.Item.Value).ToList());
             consumer.Items.Clear();
 
             // Action with state
             await container.ExecuteSync((x,s) => { x.Value += (int) s; }, 2);
-            await container.EnumerateToStream();
+            await container.EnumerateToSubscribers();
             l.ForEach(x => x.Value += 2);
             CollectionAssert.AreEquivalent(l.Select(x => x.Value).ToList(), consumer.Items.Select(x => x.Item.Value).ToList());
             consumer.Items.Clear();
@@ -160,7 +160,7 @@ namespace Orleans.Collections.Test
 
             var result = await container.ExecuteSync(x => x.Value += 2); // ExecuteLambda((i, o) => i.Value += 2);
 
-            var tid = await container.EnumerateToStream();
+            var tid = await container.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
             var expectedList = l.Select(x => x.Value + 2).ToList();
@@ -188,7 +188,7 @@ namespace Orleans.Collections.Test
 
             await container.ExecuteSync(x => x.Value += 2);
 
-            var tid = await container.EnumerateToStream();
+            var tid = await container.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
             var expectedList = l.Select(x => x.Value + 2).ToList();
@@ -215,7 +215,7 @@ namespace Orleans.Collections.Test
 
             await container.ExecuteSync(i => { i.Value += 2; }, reference);
 
-            var tid = await container.EnumerateToStream();
+            var tid = await container.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
 

@@ -13,7 +13,6 @@ namespace Orleans.Streams.Endpoints
     public class MultiStreamProvider<T> : ITransactionalStreamProviderAggregate<T>
     {
         private readonly List<SingleStreamTransactionSender<T>> _providers;
-        private int _lastTransactionId = -1;
 
         private bool _tearDownExecuted;
         private List<StreamMessageSender> _senders;
@@ -48,9 +47,9 @@ namespace Orleans.Streams.Endpoints
         /// </summary>
         /// <param name="data">Items to send.</param>
         /// <returns>Transaction identifier.</returns>
-        public async Task<int> SendItems(ICollection<T> data)
+        public async Task<Guid> SendItems(ICollection<T> data)
         {
-            var transactionId = ++_lastTransactionId;
+            var transactionId = Guid.NewGuid();
 
             var itemsPerProvider = (int) Math.Ceiling(data.Count/(double) _providers.Count);
             var chunks = data.BatchIEnumerable(itemsPerProvider);

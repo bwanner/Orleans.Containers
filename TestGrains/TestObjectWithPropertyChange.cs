@@ -37,6 +37,7 @@ namespace TestGrains
         }
 
         public ObjectIdentifier Identifier { get; }
+        [field: NonSerialized]
         public event ContainerElementPropertyChangedEventHandler ContainerPropertyChanged;
         public event PropertyChangedEventHandler PropertyChanged;
 

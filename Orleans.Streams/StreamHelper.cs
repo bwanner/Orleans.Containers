@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace Orleans.Streams
 {
@@ -37,6 +38,17 @@ namespace Orleans.Streams
             }
 
             return chunks;
+        }
+
+        public static IEnumerable<T> Repeat<T>(this IEnumerable<T> source)
+        {
+            while (true)
+            {
+                foreach (var item in source)
+                {
+                    yield return item;
+                }
+            }
         }
     }
 }

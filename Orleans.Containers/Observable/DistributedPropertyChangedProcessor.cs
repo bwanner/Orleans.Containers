@@ -21,6 +21,8 @@ namespace Orleans.Collections.Observable
 
         public int KnownObjectCount => KnownObjects.Count;
 
+        public event ContainerElementPropertyChangedEventHandler ContainerPropertyChanged;
+
         public Task ProcessItemPropertyChangedMessage(ItemPropertyChangedMessage arg)
         {
             var matchingObject = KnownObjects[arg.ChangedEventArgs.ObjectIdentifier];
@@ -60,11 +62,18 @@ namespace Orleans.Collections.Observable
         private void AddToKnownObjects(ObjectIdentifier identifier, IContainerElementNotifyPropertyChanged target)
         {
             KnownObjects.Add(identifier, target);
+            target.ContainerPropertyChanged += OnContainerPropertyChanged;
         }
 
         private void RemoveFromKnownObjects(ObjectIdentifier identifier, IContainerElementNotifyPropertyChanged target)
         {
             KnownObjects.Remove(identifier);
+            target.ContainerPropertyChanged -= OnContainerPropertyChanged;
+        }
+
+        private void OnContainerPropertyChanged(ContainerElementPropertyChangedEventArgs change)
+        {
+            ContainerPropertyChanged?.Invoke(change);
         }
 
         private void ExecuteForElementsWithPropertyChangedSupport(object root, Action<ObjectIdentifier, IContainerElementNotifyPropertyChanged> action)

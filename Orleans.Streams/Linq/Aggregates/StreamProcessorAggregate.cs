@@ -20,7 +20,7 @@ namespace Orleans.Streams.Linq.Aggregates
             }
         }
 
-        public async Task TransactionComplete(int transactionId)
+        public async Task TransactionComplete(Guid transactionId)
         {
             await Task.WhenAll(ProcessorNodes.Select(p => p.TransactionComplete(transactionId)));
         }

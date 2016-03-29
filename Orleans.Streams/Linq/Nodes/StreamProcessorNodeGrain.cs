@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Orleans.Streams.Endpoints;
 using Orleans.Streams.Messages;
@@ -18,7 +19,7 @@ namespace Orleans.Streams.Linq.Nodes
             await StreamMessageDispatchReceiver.Subscribe(inputStream);
         }
 
-        public Task TransactionComplete(int transactionId)
+        public Task TransactionComplete(Guid transactionId)
         {
             return _streamTransactionReceiver.TransactionComplete(transactionId);
         }

@@ -10,7 +10,7 @@ namespace Orleans.Streams.Messages
     public struct TransactionMessage : IEquatable<TransactionMessage>, IStreamMessage
     {
         public TransactionState State;
-        public int TransactionId;
+        public Guid TransactionId;
 
         public bool Equals(TransactionMessage other)
         {
