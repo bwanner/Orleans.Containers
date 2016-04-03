@@ -33,7 +33,7 @@ namespace Orleans.Collections.Test
 
             var processor = GrainClient.GrainFactory.GetGrain<IStreamProcessorSelectNodeGrain<int, int>>(processorNodeGuid);
 
-            await processor.SetFunction(_ => _);
+            await processor.SetFunction(new SerializableFunc<int, int>(_ => _));
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
             var testProvider = new MultiStreamProvider<int>(provider, 1);
@@ -54,7 +54,7 @@ namespace Orleans.Collections.Test
         {
             var processorNodeGuid = Guid.NewGuid();
             var processor = GrainClient.GrainFactory.GetGrain<IStreamProcessorSelectNodeGrain<int, int>>(processorNodeGuid);
-            await processor.SetFunction(_ => _);
+            await processor.SetFunction(new SerializableFunc<int, int>(_ => _));
 
             var itemsToSend = new List<int> {-1, 5, 30};
 
@@ -83,7 +83,7 @@ namespace Orleans.Collections.Test
         public async Task TestItemAggregation()
         {
             var aggregate = GrainClient.GrainFactory.GetGrain<IStreamProcessorSelectAggregate<int, int>>(Guid.NewGuid());
-            await aggregate.SetFunction(_ => _);
+            await aggregate.SetFunction(new SerializableFunc<int, int>(_ => _));
 
             var itemsToSend = new List<int> {1, 5, 32, -12};
 
@@ -119,7 +119,7 @@ namespace Orleans.Collections.Test
         public async Task TestAggregateCleanupSuccessful()
         {
             var aggregate = GrainClient.GrainFactory.GetGrain<IStreamProcessorSelectAggregate<int, int>>(Guid.NewGuid());
-            await aggregate.SetFunction(_ => _);
+            await aggregate.SetFunction(new SerializableFunc<int, int>(_ => _));
 
             var itemsToSend = new List<int> {1, 5, 32, -12};
 
