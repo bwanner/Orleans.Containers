@@ -13,6 +13,6 @@ namespace Orleans.Streams
         /// </summary>
         /// <param name="function">Selection function for each item.</param>
         /// <returns></returns>
-        Task SetFunction(Func<TIn, TOut> function);
+        Task SetFunction(SerializableFunc<TIn, TOut> function);
     }
 }

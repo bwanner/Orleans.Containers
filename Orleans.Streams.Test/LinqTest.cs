@@ -52,7 +52,7 @@ namespace Orleans.Streams.Test
 
             await
                 TestMultiLevelDataPass<int, int>(
-                    async (streamSource, factory) => await streamSource.Select(x => x.ToString(), factory).Select(int.Parse), 
+                    async (streamSource, factory) => await streamSource.Select(x => x.ToString(), factory).Select(s => int.Parse(s)), 
                     input, input, CollectionAssert.AreEquivalent);
         }
 

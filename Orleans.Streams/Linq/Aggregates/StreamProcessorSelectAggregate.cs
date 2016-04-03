@@ -7,9 +7,9 @@ namespace Orleans.Streams.Linq.Aggregates
 {
     public class StreamProcessorSelectAggregate<TIn, TOut> : StreamProcessorAggregate<TIn, TOut>, IStreamProcessorSelectAggregate<TIn, TOut>
     {
-        private Func<TIn, TOut> _functionTemplate;
+        private SerializableFunc<TIn, TOut> _functionTemplate;
 
-        public Task SetFunction(Func<TIn, TOut> function)
+        public Task SetFunction(SerializableFunc<TIn, TOut> function)
         {
             _functionTemplate = function;
             return TaskDone.Done;

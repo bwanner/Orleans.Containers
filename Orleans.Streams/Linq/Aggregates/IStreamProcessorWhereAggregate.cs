@@ -5,6 +5,6 @@ namespace Orleans.Streams.Linq.Aggregates
 {
     public interface IStreamProcessorWhereAggregate<TIn> : IStreamProcessorAggregate<TIn, TIn>
     {
-        Task SetFunction(Func<TIn, bool> function);
+        Task SetFunction(SerializableFunc<TIn, bool> function);
     }
 }

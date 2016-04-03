@@ -60,7 +60,8 @@ namespace Orleans.Streams.Endpoints
         {
             while (_queue.Count > 0)
             {
-                await SendMessage(_queue.Dequeue());
+                var message = _queue.Dequeue();
+                await SendMessage(message);
             }
         }
     }

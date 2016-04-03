@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace Orleans.Streams.Linq
@@ -9,13 +10,13 @@ namespace Orleans.Streams.Linq
         #region Select
 
         public static async Task<StreamProcessorChain<TIn, TOut>> Select<TIn, TOut>(
-            this ITransactionalStreamProviderAggregate<TIn> source, Func<TIn, TOut> selectionFunc, IGrainFactory factory)
+            this ITransactionalStreamProviderAggregate<TIn> source, Expression<Func<TIn, TOut>> selectionFunc, IGrainFactory factory)
         {
             return await Select(source, selectionFunc, new DefaultStreamProcessorAggregateFactory(factory));
         }
 
         public static async Task<StreamProcessorChain<TIn, TOut>> Select<TIn, TOut>(
-            this ITransactionalStreamProviderAggregate<TIn> source, Func<TIn, TOut> selectionFunc,
+            this ITransactionalStreamProviderAggregate<TIn> source, Expression<Func<TIn, TOut>> selectionFunc,
             IStreamProcessorAggregateFactory factory)
         {
             var processorAggregate = await factory.CreateSelect<TIn, TOut>(selectionFunc, await source.GetStreamIdentities());
@@ -25,7 +26,7 @@ namespace Orleans.Streams.Linq
         }
 
         public static async Task<StreamProcessorChain<TIn, TOut>> Select<TOldIn, TIn, TOut>(
-            this StreamProcessorChain<TOldIn, TIn> previousNode, Func<TIn, TOut> selectionFunc)
+            this StreamProcessorChain<TOldIn, TIn> previousNode, Expression<Func<TIn, TOut>> selectionFunc)
         {
             var processorAggregate =
                 await previousNode.Factory.CreateSelect<TIn, TOut>(selectionFunc, await previousNode.Aggregate.GetStreamIdentities());
@@ -35,7 +36,7 @@ namespace Orleans.Streams.Linq
         }
 
         public static async Task<StreamProcessorChain<TIn, TOut>> Select<TOldIn, TIn, TOut>(
-            this Task<StreamProcessorChain<TOldIn, TIn>> previousNodeTask, Func<TIn, TOut> selectionFunc)
+            this Task<StreamProcessorChain<TOldIn, TIn>> previousNodeTask, Expression<Func<TIn, TOut>> selectionFunc)
         {
             var previousNode = await previousNodeTask;
             return await Select(previousNode, selectionFunc);
@@ -46,12 +47,12 @@ namespace Orleans.Streams.Linq
         #region Where
 
         public static async Task<StreamProcessorChain<TIn, TIn>> Where<TIn>(
-            this ITransactionalStreamProviderAggregate<TIn> source, Func<TIn, bool> filterFunc, IGrainFactory factory)
+            this ITransactionalStreamProviderAggregate<TIn> source, Expression<Func<TIn, bool>> filterFunc, IGrainFactory factory)
         {
             return await Where(source, filterFunc, new DefaultStreamProcessorAggregateFactory(factory));
         }
 
-        public static async Task<StreamProcessorChain<TIn, TIn>> Where<TIn>(this ITransactionalStreamProviderAggregate<TIn> source, Func<TIn, bool> filterFunc,
+        public static async Task<StreamProcessorChain<TIn, TIn>> Where<TIn>(this ITransactionalStreamProviderAggregate<TIn> source, Expression<Func<TIn, bool>> filterFunc,
             IStreamProcessorAggregateFactory factory)
         {
             var processorAggregate = await factory.CreateWhere(filterFunc, await source.GetStreamIdentities());
@@ -61,7 +62,7 @@ namespace Orleans.Streams.Linq
         }
 
         public static async Task<StreamProcessorChain<TIn, TIn>> Where<TOldIn, TIn>(
-            this StreamProcessorChain<TOldIn, TIn> previousNode, Func<TIn, bool> filterFunc)
+            this StreamProcessorChain<TOldIn, TIn> previousNode, Expression<Func<TIn, bool>> filterFunc)
         {
             var processorAggregate = await previousNode.Factory.CreateWhere(filterFunc, await previousNode.Aggregate.GetStreamIdentities());
             var processorChain = new StreamProcessorChain<TIn, TIn>(processorAggregate, previousNode);
@@ -70,7 +71,7 @@ namespace Orleans.Streams.Linq
         }
 
         public static async Task<StreamProcessorChain<TIn, TIn>> Where<TOldIn, TIn>(
-            this Task<StreamProcessorChain<TOldIn, TIn>> previousNodeTask, Func<TIn, bool> filterFunc)
+            this Task<StreamProcessorChain<TOldIn, TIn>> previousNodeTask, Expression<Func<TIn, bool>> filterFunc)
         {
             var previousNode = await previousNodeTask;
             return await Where(previousNode, filterFunc);

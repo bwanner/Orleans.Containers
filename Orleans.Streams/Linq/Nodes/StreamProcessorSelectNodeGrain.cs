@@ -10,9 +10,9 @@ namespace Orleans.Streams.Linq.Nodes
     {
         private Func<TIn, TOut> _function;
 
-        public Task SetFunction(Func<TIn, TOut> function)
+        public Task SetFunction(SerializableFunc<TIn, TOut> function)
         {
-            _function = function;
+            _function = function.Value.Compile();
             return TaskDone.Done;
         }
 

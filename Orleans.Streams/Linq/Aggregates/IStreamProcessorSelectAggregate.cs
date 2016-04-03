@@ -5,6 +5,6 @@ namespace Orleans.Streams.Linq.Aggregates
 {
     public interface IStreamProcessorSelectAggregate<TIn, TOut> : IStreamProcessorAggregate<TIn, TOut>
     {
-        Task SetFunction(Func<TIn, TOut> function);
+        Task SetFunction(SerializableFunc<TIn, TOut> function);
     }
 }
