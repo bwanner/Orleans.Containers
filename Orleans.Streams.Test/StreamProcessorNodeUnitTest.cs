@@ -23,7 +23,7 @@ namespace Orleans.Collections.Test
             // Optional. 
             // By default, the next test class which uses TestignSiloHost will
             // cause a fresh Orleans silo environment to be created.
-            StopAllSilos();
+            StopAllSilosIfRunning();
         }
 
         [TestMethod]

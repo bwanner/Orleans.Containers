@@ -23,7 +23,7 @@ namespace Orleans.Collections.Test
             // Optional. 
             // By default, the next test class which uses TestignSiloHost will
             // cause a fresh Orleans silo environment to be created.
-            StopAllSilos();
+            StopAllSilosIfRunning();
         }
 
         [TestInitialize]
@@ -152,7 +152,7 @@ namespace Orleans.Collections.Test
             Assert.AreEqual("Value", changeEventArgs.PropertyName);
         }
 
-
+        [Ignore]
         [TestMethod]
         public async Task TestPropertyChangedMessageIsCreatedAndSent()
         {

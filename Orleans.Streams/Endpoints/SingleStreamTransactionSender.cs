@@ -20,6 +20,12 @@ namespace Orleans.Streams.Endpoints
             _sender = sender;
         }
 
+        public void EnqueueItemsForSending(params T[] items)
+        {
+            var message = new ItemMessage<T>(items);
+            _sender.AddToMessageQueue(message);
+        }
+
         public async Task<Guid> SendItems(IEnumerable<T> items, bool useTransaction = true, Guid? transactionId = null)
         {
             var curTransactionId = transactionId ?? Guid.NewGuid();

@@ -29,7 +29,7 @@ namespace Orleans.Collections.Observable
         {
             var elementReferences = await base.AddRange(items);
             _propertyChangedProcessor.AddItems(items);
-            var containerElements = elementReferences.Select(r => new ContainerElement<T>(r, Elements[r])).ToList();
+            var containerElements = elementReferences.Select(r => Elements[r]).ToList();
 
             await StreamTransactionSender.SendItems(containerElements, false);
             return elementReferences;
@@ -37,7 +37,7 @@ namespace Orleans.Collections.Observable
 
         public override async Task<bool> Remove(ContainerElementReference<T> reference)
         {
-            var item = Elements[reference];
+            var item = Elements.GetElement(reference);
             await Elements.Remove(reference);
             _propertyChangedProcessor.Remove(item);
 

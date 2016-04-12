@@ -1,7 +1,10 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
+using Orleans.CodeGeneration;
 using Orleans.Collections.Observable;
+using Orleans.Serialization;
 
 namespace TestGrains
 {
@@ -36,14 +39,19 @@ namespace TestGrains
             }
         }
 
-        public ObjectIdentifier Identifier { get; }
+        public ObjectIdentifier Identifier { get; private set; }
         [field: NonSerialized]
         public event ContainerElementPropertyChangedEventHandler ContainerPropertyChanged;
+        [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        [CopierMethod]
+        private static object Copy(object input)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            TestObjectWithPropertyChange o = (TestObjectWithPropertyChange) input;
+            return new TestObjectWithPropertyChange(o._value) {Identifier = o.Identifier};
         }
+
+
     }
 }

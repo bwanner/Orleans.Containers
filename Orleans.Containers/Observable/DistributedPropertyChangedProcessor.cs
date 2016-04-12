@@ -25,6 +25,7 @@ namespace Orleans.Collections.Observable
 
         public Task ProcessItemPropertyChangedMessage(ItemPropertyChangedMessage arg)
         {
+            Console.WriteLine("PropertyChangedMessage {0}", arg.ChangedEventArgs.Value.ToString());
             var matchingObject = KnownObjects[arg.ChangedEventArgs.ObjectIdentifier];
             matchingObject.ApplyChange(arg.ChangedEventArgs);
             return TaskDone.Done;

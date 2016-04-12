@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -17,7 +16,7 @@ namespace Orleans.Collections
         private readonly IElementExecutor<T> _executorReference;
         protected List<T> Collection;
 
-        public T this[ContainerElementAddress<T> address]
+        public ContainerElement<T> this[ContainerElementAddress<T> address]
         {
             get
             {
@@ -26,7 +25,7 @@ namespace Orleans.Collections
                     throw new ArgumentException();
                 }
 
-                return Collection[address.Offset];
+                return CreateContainerElement(address.Offset);
             }
         }
 
@@ -38,19 +37,6 @@ namespace Orleans.Collections
             _executorReference = executorReference;
             _executorGrainReference = executorGrainReference;
             Collection = new List<T>();
-        }
-
-        public virtual IReadOnlyCollection<ContainerElementReference<T>> AddRange(IEnumerable<T> items)
-        {
-            var oldCount = Collection.Count;
-            foreach (var item in items)
-            {
-                Collection.Add(item);
-            }
-
-            IReadOnlyCollection<ContainerElementReference<T>> newReferences =
-                Enumerable.Range(oldCount, Collection.Count - oldCount).Select(i => GetReferenceForItem(i)).ToList();
-            return newReferences;
         }
 
         public virtual Task Clear()
@@ -67,18 +53,6 @@ namespace Orleans.Collections
         public Task<int> Count()
         {
             return Task.FromResult(Collection.Count);
-        }
-
-        public ContainerElementReference<T> Remove(T item)
-        {
-            var index = Collection.IndexOf(item);
-            if (index == -1)
-            {
-                throw new ArgumentException(nameof(item));
-            }
-
-            Collection.Remove(item);
-            return GetReferenceForItem(index, false);
         }
 
         public virtual Task<bool> Remove(ContainerElementReference<T> reference)
@@ -98,23 +72,73 @@ namespace Orleans.Collections
             return Task.FromResult(true);
         }
 
-        protected ContainerElementReference<T> GetReferenceForItem(int offset, bool itemExists = true)
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            return new ContainerElementReference<T>(_containerId, offset, _executorReference,
-                _executorGrainReference, itemExists);
+            return GetEnumerator();
         }
 
         public IEnumerator<ContainerElement<T>> GetEnumerator()
         {
             return
                 Enumerable.Range(0, Collection.Count)
-                    .Select(offset => new ContainerElement<T>(GetReferenceForItem(offset), Collection[offset]))
+                    .Select(CreateContainerElement)
                     .GetEnumerator();
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
+        public T GetElement(ContainerElementAddress<T> address)
         {
-            return GetEnumerator();
+            if (!address.ContainerId.Equals(_containerId))
+            {
+                throw new ArgumentException();
+            }
+
+            return Collection[address.Offset];
+        }
+
+        public void SetElement(ContainerElementAddress<T> address, T value)
+        {
+            if (!address.ContainerId.Equals(_containerId))
+            {
+                throw new ArgumentException();
+            }
+
+            Collection[address.Offset] = value;
+        }
+
+        public virtual IReadOnlyCollection<ContainerElementReference<T>> AddRange(IEnumerable<T> items)
+        {
+            var oldCount = Collection.Count;
+            foreach (var item in items)
+            {
+                Collection.Add(item);
+            }
+
+            IReadOnlyCollection<ContainerElementReference<T>> newReferences =
+                Enumerable.Range(oldCount, Collection.Count - oldCount).Select(i => GetReferenceForItem(i)).ToList();
+            return newReferences;
+        }
+
+        public ContainerElementReference<T> Remove(T item)
+        {
+            var index = Collection.IndexOf(item);
+            if (index == -1)
+            {
+                throw new ArgumentException(nameof(item));
+            }
+
+            Collection.Remove(item);
+            return GetReferenceForItem(index, false);
+        }
+
+        protected ContainerElementReference<T> GetReferenceForItem(int offset, bool itemExists = true)
+        {
+            return new ContainerElementReference<T>(_containerId, offset, _executorReference,
+                _executorGrainReference, itemExists);
+        }
+
+        private ContainerElement<T> CreateContainerElement(int offset)
+        {
+            return new ContainerElement<T>(GetReferenceForItem(offset), Collection[offset]);
         }
     }
 }

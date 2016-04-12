@@ -78,7 +78,7 @@ namespace Orleans.Collections
         {
             if (reference != null)
             {
-                var curItem = Elements[reference];
+                var curItem = Elements.GetElement(reference);
                 await func(curItem, state);
             }
 
@@ -113,7 +113,7 @@ namespace Orleans.Collections
 
         public async Task<object> ExecuteAsync(Func<T, object, Task<object>> func, object state, ContainerElementReference<T> reference)
         {
-            var curItem = Elements[reference];
+            var curItem = Elements.GetElement(reference);
             var result = await func(curItem, state);
             await StreamMessageSender.SendMessagesFromQueue();
             return result;
@@ -128,7 +128,7 @@ namespace Orleans.Collections
         {
             if (reference != null)
             {
-                var curItem = Elements[reference];
+                var curItem = Elements.GetElement(reference);
                 action(curItem, state);
             }
             else
@@ -153,7 +153,7 @@ namespace Orleans.Collections
             {
                 throw new InvalidOperationException();
             }
-            var curItem = Elements[reference];
+            var curItem = Elements.GetElement(reference);
             var result = func(curItem, state);
 
             await StreamMessageSender.SendMessagesFromQueue();
