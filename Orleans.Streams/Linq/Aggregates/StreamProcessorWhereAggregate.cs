@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Orleans.Streams.Linq.Aggregates
 {
-    public class StreamProcessorWhereAggregate<TIn> : StreamProcessorAggregate<TIn, TIn>, IStreamProcessorWhereAggregate<TIn>
+    public class StreamProcessorWhereAggregate<TIn> : StreamProcessorAggregate<TIn, TIn, IStreamProcessorWhereNodeGrain<TIn>>, IStreamProcessorWhereAggregate<TIn>
     {
         private SerializableFunc<TIn, bool> _functionTemplate;
 
@@ -15,7 +15,7 @@ namespace Orleans.Streams.Linq.Aggregates
             return TaskDone.Done;
         }
 
-        protected override async Task<IStreamProcessorNodeGrain<TIn, TIn>> InitializeNode(StreamIdentity identity)
+        protected override async Task<IStreamProcessorWhereNodeGrain<TIn>> InitializeNode(StreamIdentity identity)
         {
             var node = GrainFactory.GetGrain<IStreamProcessorWhereNodeGrain<TIn>>(Guid.NewGuid());
             await node.SetFunction(_functionTemplate);

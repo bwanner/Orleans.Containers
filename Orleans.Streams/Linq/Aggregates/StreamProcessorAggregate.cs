@@ -5,13 +5,14 @@ using System.Threading.Tasks;
 
 namespace Orleans.Streams.Linq.Aggregates
 {
-    public abstract class StreamProcessorAggregate<TIn, TOut> : Grain, IStreamProcessorAggregate<TIn, TOut>
+    public abstract class StreamProcessorAggregate<TIn, TOut, TNode> : Grain, IStreamProcessorAggregate<TIn, TOut, TNode>
+        where TNode : IStreamProcessorNodeGrain<TIn, TOut>
     {
-        protected List<IStreamProcessorNodeGrain<TIn, TOut>> ProcessorNodes;
+        protected List<TNode> ProcessorNodes;
 
         public async Task SetInput(IEnumerable<StreamIdentity> streamIdentities)
         {
-            ProcessorNodes = new List<IStreamProcessorNodeGrain<TIn, TOut>>();
+            ProcessorNodes = new List<TNode>();
             foreach (var identity in streamIdentities)
             {
                 var node = await InitializeNode(identity);
@@ -25,8 +26,6 @@ namespace Orleans.Streams.Linq.Aggregates
             await Task.WhenAll(ProcessorNodes.Select(p => p.TransactionComplete(transactionId)));
         }
 
-        protected abstract Task<IStreamProcessorNodeGrain<TIn, TOut>> InitializeNode(StreamIdentity identity);
-        
         public async Task<IList<StreamIdentity>> GetStreamIdentities()
         {
             var result = await Task.WhenAll(ProcessorNodes.Select(n => n.GetStreamIdentity()));
@@ -34,16 +33,18 @@ namespace Orleans.Streams.Linq.Aggregates
             return result.ToList();
         }
 
+        public async Task<bool> IsTearedDown()
+        {
+            var tearDownStates = await Task.WhenAll(ProcessorNodes.Select(n => n.IsTearedDown()));
+
+            return tearDownStates.All(x => x);
+        }
+
         public async Task TearDown()
         {
             await Task.WhenAll(ProcessorNodes.Select(p => p.TearDown()));
         }
 
-        public async Task<bool> IsTearedDown()
-        {
-            var tearDownStates = await Task.WhenAll(ProcessorNodes.Select(n => n.IsTearedDown()));
-
-            return tearDownStates.All(x => x == true);
-        }
+        protected abstract Task<TNode> InitializeNode(StreamIdentity identity);
     }
 }

@@ -2,6 +2,7 @@ using System;
 
 namespace Orleans.Collections
 {
+    [Serializable]
     public class ContainerElementAddress<T> : IEquatable<ContainerElementAddress<T>>
     {
 
