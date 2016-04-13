@@ -7,35 +7,36 @@ using MetaLinq;
 
 namespace Orleans.Streams
 {
+	
     /// <summary>
-    ///     Serializable wrapper for an expression describing a Func&lt;TIn, TOut&gt;.
+    ///     Serializable wrapper for an expression describing a Func from input types to an output type.
     /// </summary>
-    /// <typeparam name="TIn"></typeparam>
-    /// <typeparam name="TOut"></typeparam>
+	/// <typeparam name="T1"></typeparam>
+	/// <typeparam name="TOut"></typeparam>
     [Serializable]
-    public class SerializableFunc<TIn, TOut>
+    public class SerializableFunc<T1, TOut>
     {
         private readonly Type _type;
 
         private readonly string _xmlString;
 
-        [NonSerialized] private Expression<Func<TIn, TOut>> _expression;
+        [NonSerialized] private Expression<Func<T1, TOut>> _expression;
 
         /// <summary>
         /// Get the expression.
         /// </summary>
-        public Expression<Func<TIn, TOut>> Value => ComputeExpression();
+        public Expression<Func<T1, TOut>> Value => ComputeExpression();
 
-        public static implicit operator SerializableFunc<TIn, TOut>(Expression<Func<TIn, TOut>> expression)
+        public static implicit operator SerializableFunc<T1, TOut>(Expression<Func<T1, TOut>> expression)
         {
-            return new SerializableFunc<TIn, TOut>(expression);
+            return new SerializableFunc<T1, TOut>(expression);
         }
 
         /// <summary>
         /// Create a new SerializableExpression.
         /// </summary>
         /// <param name="expression">Expression to serialize.</param>
-        public SerializableFunc(Expression<Func<TIn, TOut>> expression)
+        public SerializableFunc(Expression<Func<T1, TOut>> expression)
         {
             var editableExpression = EditableExpression.CreateEditableExpression(expression);
 
@@ -47,7 +48,7 @@ namespace Orleans.Streams
             _type = editableExpression.GetType();
         }
 
-        private Expression<Func<TIn, TOut>> ComputeExpression()
+        private Expression<Func<T1, TOut>> ComputeExpression()
         {
             if (_expression == null)
             {
@@ -55,10 +56,66 @@ namespace Orleans.Streams
                 var ms = new MemoryStream(Encoding.UTF8.GetBytes(_xmlString));
                 var o = serializer.Deserialize(ms);
                 var editableExpression = (EditableExpression) o;
-                _expression = (Expression<Func<TIn, TOut>>) editableExpression.ToExpression();
+                _expression = (Expression<Func<T1, TOut>>) editableExpression.ToExpression();
             }
 
             return _expression;
         }
-    }
+	}
+
+    /// <summary>
+    ///     Serializable wrapper for an expression describing a Func from input types to an output type.
+    /// </summary>
+	/// <typeparam name="T1"></typeparam>
+	/// <typeparam name="T2"></typeparam>
+	/// <typeparam name="TOut"></typeparam>
+    [Serializable]
+    public class SerializableFunc<T1, T2, TOut>
+    {
+        private readonly Type _type;
+
+        private readonly string _xmlString;
+
+        [NonSerialized] private Expression<Func<T1, T2, TOut>> _expression;
+
+        /// <summary>
+        /// Get the expression.
+        /// </summary>
+        public Expression<Func<T1, T2, TOut>> Value => ComputeExpression();
+
+        public static implicit operator SerializableFunc<T1, T2, TOut>(Expression<Func<T1, T2, TOut>> expression)
+        {
+            return new SerializableFunc<T1, T2, TOut>(expression);
+        }
+
+        /// <summary>
+        /// Create a new SerializableExpression.
+        /// </summary>
+        /// <param name="expression">Expression to serialize.</param>
+        public SerializableFunc(Expression<Func<T1, T2, TOut>> expression)
+        {
+            var editableExpression = EditableExpression.CreateEditableExpression(expression);
+
+            var ms = new MemoryStream();
+            var serializer = new XmlSerializer(editableExpression.GetType());
+            serializer.Serialize(ms, editableExpression);
+            ms.Flush();
+            _xmlString = Encoding.UTF8.GetString(ms.ToArray());
+            _type = editableExpression.GetType();
+        }
+
+        private Expression<Func<T1, T2, TOut>> ComputeExpression()
+        {
+            if (_expression == null)
+            {
+                var serializer = new XmlSerializer(_type);
+                var ms = new MemoryStream(Encoding.UTF8.GetBytes(_xmlString));
+                var o = serializer.Deserialize(ms);
+                var editableExpression = (EditableExpression) o;
+                _expression = (Expression<Func<T1, T2, TOut>>) editableExpression.ToExpression();
+            }
+
+            return _expression;
+        }
+	}
 }
