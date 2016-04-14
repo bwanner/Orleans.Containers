@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Orleans.Collections.Endpoints;
 using Orleans.Collections.Observable;
 using Orleans.Collections.Utilities;
 using Orleans.Streams;
@@ -57,22 +58,20 @@ namespace Orleans.Collections.Test
             int numContainers = 2;
             await collection.SetNumberOfNodes(numContainers);
 
-            var observedCollectionConsumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(_provider);
+            var observedCollectionConsumer = new ContainerElementListConsumer<DummyInt>(_provider);
             await observedCollectionConsumer.SetInput(await collection.GetStreamIdentities());
 
             var inputList = Enumerable.Range(0, 1000).Select(x => new DummyInt(x)).ToList();
             var references = await collection.BatchAdd(inputList);
             Assert.AreEqual(inputList.Count, await collection.Count());
 
-            observedCollectionConsumer.Items.Clear();
             var value = (DummyInt) await collection.ExecuteSync(x => x, references.First());
             await collection.Remove(references.First());
 
-            Assert.AreEqual(1, observedCollectionConsumer.Items.Count);
-            var receivedItem = observedCollectionConsumer.Items.First();
-            Assert.IsFalse(receivedItem.Reference.Exists);
-            Assert.AreEqual(value, receivedItem.Item);
             Assert.AreEqual(inputList.Count - 1, await collection.Count());
+
+            inputList.Remove(value);
+            CollectionAssert.AreEqual(inputList, observedCollectionConsumer.Items.Select(i => i.Item).ToList());
         }
     }
 }

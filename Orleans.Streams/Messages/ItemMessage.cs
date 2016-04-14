@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 namespace Orleans.Streams.Messages
 {
     [Serializable]
-    public class ItemMessage<T> : IStreamMessage
+    public abstract class ItemMessage<T> : IStreamMessage
     {
-        public IEnumerable<T> Items { get; private set; }
+        public IList<T> Items { get; private set; }
 
-        public ItemMessage(IEnumerable<T> items)
+        protected ItemMessage(IEnumerable<T> items)
         {
-            Items = items;
+            Items = items.ToList();
         }
     }
 }

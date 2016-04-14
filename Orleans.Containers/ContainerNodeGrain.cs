@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Collections.Endpoints;
+using Orleans.Collections.Messages;
 using Orleans.Collections.Utilities;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;
@@ -18,17 +20,17 @@ namespace Orleans.Collections
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
         private SingleStreamTransactionReceiver _streamTransactionReceiver;
         protected ContainerElementList<T> Elements;
-        protected SingleStreamTransactionSender<ContainerElement<T>> StreamTransactionSender;
+        protected StreamMessageFacade<ContainerElement<T>> OutputProducer;
 
         public virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
             return Task.FromResult(Elements.AddRange(items));
         }
 
-        protected SingleStreamTransactionSender<ContainerElement<T>> SetupSenderStream(StreamIdentity streamIdentity)
+        protected StreamMessageFacade<ContainerElement<T>> SetupSenderStream(StreamIdentity streamIdentity)
         {
             var sender = new StreamMessageSender(GetStreamProvider(StreamProviderName), streamIdentity);
-            var transactionalSender = new SingleStreamTransactionSender<ContainerElement<T>>(sender);
+            var transactionalSender = new StreamMessageFacade<ContainerElement<T>>(sender);
 
             return transactionalSender;
         }
@@ -36,8 +38,11 @@ namespace Orleans.Collections
         public async Task<Guid> EnumerateToStream(StreamIdentity streamIdentity, Guid transactionId)
         {
             var transactionalSender = SetupSenderStream(streamIdentity);
-            await transactionalSender.SendItems(Elements.ToList(), true, transactionId);
-            await transactionalSender.Sender.TearDown();
+            await transactionalSender.StartTransaction(transactionId);
+            var elements = Elements.ToList();
+            await transactionalSender.SendAddItems(elements);
+            await transactionalSender.EndTransaction(transactionId);
+            await transactionalSender.TearDown();
             return transactionId;
         }
 
@@ -64,9 +69,12 @@ namespace Orleans.Collections
 
         public async Task<Guid> EnumerateToSubscribers(Guid? transactionId = null)
         {
-            var containerElements = Elements.ToList();
+            var tId = TransactionGenerator.GenerateTransactionId(transactionId);
+            await OutputProducer.StartTransaction(tId);
+            await OutputProducer.SendAddItems(Elements);
+            await OutputProducer.EndTransaction(tId);
 
-            return await StreamTransactionSender.SendItems(containerElements, true, transactionId);
+            return tId;
         }
 
         public Task ExecuteAsync(Func<T, Task> func, ContainerElementReference<T> reference = null)
@@ -202,17 +210,17 @@ namespace Orleans.Collections
         public override async Task OnActivateAsync()
         {
             StreamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
-            StreamTransactionSender = new SingleStreamTransactionSender<ContainerElement<T>>(StreamMessageSender);
+            OutputProducer = new StreamMessageFacade<ContainerElement<T>>(StreamMessageSender);
             StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), TearDown);
             _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
-            StreamMessageDispatchReceiver.Register<ItemMessage<T>>(ProcessItemMessage);
+            StreamMessageDispatchReceiver.Register<ItemAddMessage<T>>(ProcessItemMessage);
             Elements = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
             await base.OnActivateAsync();
         }
 
         public StreamMessageSender StreamMessageSender { get; set; }
 
-        protected virtual async Task ProcessItemMessage(ItemMessage<T> message)
+        protected virtual async Task ProcessItemMessage(ItemAddMessage<T> message)
         {
             await AddRange(message.Items);
         }

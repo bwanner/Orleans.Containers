@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Orleans.Collections.Messages;
 using Orleans.Streams.Endpoints;
 using Orleans.Streams.Messages;
 
@@ -31,9 +32,19 @@ namespace Orleans.Collections.Observable
             return TaskDone.Done;
         }
 
-        public Task ProcessItemMessage(ItemMessage<T> message)
+        public Task ProcessItemAddMessage(ItemAddMessage<T> message)
         {
             AddItems(message.Items);
+            return TaskDone.Done;
+        }
+
+        public Task ProcessItemRemoveMessage(ItemRemoveMessage<T> message)
+        {
+            foreach (var item in message.Items)
+            {
+                Remove(item);
+            }
+
             return TaskDone.Done;
         }
 
@@ -62,8 +73,12 @@ namespace Orleans.Collections.Observable
  
         private void AddToKnownObjects(ObjectIdentifier identifier, IContainerElementNotifyPropertyChanged target)
         {
-            KnownObjects.Add(identifier, target);
-            target.ContainerPropertyChanged += OnContainerPropertyChanged;
+            // TODO remove once ItemMessage for creation and deletion are seperate
+            if(!KnownObjects.ContainsKey(identifier))
+            { 
+                KnownObjects.Add(identifier, target);
+                target.ContainerPropertyChanged += OnContainerPropertyChanged;
+            }
         }
 
         private void RemoveFromKnownObjects(ObjectIdentifier identifier, IContainerElementNotifyPropertyChanged target)

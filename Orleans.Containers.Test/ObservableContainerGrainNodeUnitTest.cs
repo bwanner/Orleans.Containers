@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Orleans.Collections.Endpoints;
 using Orleans.Collections.Observable;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;
@@ -64,7 +65,7 @@ namespace Orleans.Collections.Test
             var l = Enumerable.Range(1, 1).ToList();
             var container = GetRandomObservableContainerGrain<int>();
 
-            var resultConsumer = new MultiStreamListConsumer<ContainerElement<int>>(_provider);
+            var resultConsumer = new ContainerElementListConsumer<int>(_provider);
             await resultConsumer.SetInput(new List<StreamIdentity>() { await container.GetStreamIdentity() });
 
             Assert.AreEqual(0, resultConsumer.Items.Count);
@@ -76,10 +77,7 @@ namespace Orleans.Collections.Test
             Assert.AreEqual(l.Count, elementReferences.Count);
 
             Assert.IsTrue(await container.Remove(elementReferences.First()));
-            Assert.AreEqual(1, resultConsumer.Items.Count);
-            var deletedReference = resultConsumer.Items.First().Reference;
-            Assert.IsFalse(deletedReference.Exists);
-            Assert.AreEqual(deletedReference, elementReferences.First());
+            Assert.AreEqual(0, resultConsumer.Items.Count);
             Assert.AreEqual(l.Count - 1, await container.Count());
         }
 
@@ -89,7 +87,7 @@ namespace Orleans.Collections.Test
             var l = Enumerable.Range(1, 1).ToList();
             var container = GetRandomObservableContainerGrain<int>();
 
-            var resultConsumer = new MultiStreamListConsumer<ContainerElement<int>>(_provider);
+            var resultConsumer = new ContainerElementListConsumer<int>(_provider);
             await resultConsumer.SetInput(new List<StreamIdentity>() { await container.GetStreamIdentity() });
 
             Assert.AreEqual(0, resultConsumer.Items.Count);
@@ -99,10 +97,7 @@ namespace Orleans.Collections.Test
             resultConsumer.Items.Clear();
             
             await container.Clear();
-            Assert.AreEqual(l.Count, resultConsumer.Items.Count);
-            CollectionAssert.AreEquivalent(elementReferences.ToList(), resultConsumer.Items.Select(i => i.Reference).ToList());
-            CollectionAssert.AreEquivalent(l, resultConsumer.Items.Select(i => i.Item).ToList());
-            Assert.IsTrue(resultConsumer.Items.TrueForAll(i => !i.Reference.Exists));
+            Assert.AreEqual(0, resultConsumer.Items.Count);
         }
 
         [Ignore]

@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Collections.Messages;
+using Orleans.Streams;
 using Orleans.Streams.Messages;
 
 namespace Orleans.Collections.Observable
@@ -19,7 +21,8 @@ namespace Orleans.Collections.Observable
             _propertyChangedProcessor.ContainerPropertyChanged +=
                 change => StreamMessageSender.AddToMessageQueue(new ItemPropertyChangedMessage(change)); 
 
-            StreamMessageDispatchReceiver.Register<ItemMessage<T>>(_propertyChangedProcessor.ProcessItemMessage);
+            StreamMessageDispatchReceiver.Register<ItemAddMessage<T>>(_propertyChangedProcessor.ProcessItemAddMessage);
+            StreamMessageDispatchReceiver.Register<ItemRemoveMessage<T>>(_propertyChangedProcessor.ProcessItemRemoveMessage);
             StreamMessageDispatchReceiver.Register<ItemPropertyChangedMessage>(_propertyChangedProcessor.ProcessItemPropertyChangedMessage);
             // Forward all property changes
             StreamMessageDispatchReceiver.Register<ItemPropertyChangedMessage>(StreamMessageSender.SendMessage);
@@ -31,19 +34,16 @@ namespace Orleans.Collections.Observable
             _propertyChangedProcessor.AddItems(items);
             var containerElements = elementReferences.Select(r => Elements[r]).ToList();
 
-            await StreamTransactionSender.SendItems(containerElements, false);
+            await OutputProducer.SendAddItems(containerElements);
             return elementReferences;
         }
 
         public override async Task<bool> Remove(ContainerElementReference<T> reference)
         {
-            var item = Elements.GetElement(reference);
+            var removedItem = Elements[reference];
             await Elements.Remove(reference);
-            _propertyChangedProcessor.Remove(item);
 
-            var deletedReference = new ContainerElementReference<T>(reference.ContainerId, reference.Offset, null, null, false);
-            var removeArgs = new List<ContainerElement<T>>(1) { new ContainerElement<T>(deletedReference, item)};
-            await StreamTransactionSender.SendItems(removeArgs);
+            await OutputProducer.SendRemoveItems(removedItem.ToIEnumerable());
 
             return true;
         }
@@ -51,39 +51,9 @@ namespace Orleans.Collections.Observable
         public override async Task Clear()
         {
             var removedItems = Elements.ToList();
-            foreach (var removedItem in removedItems)
-            {
-                removedItem.Reference = new ContainerElementReference<T>(removedItem.Reference.ContainerId, removedItem.Reference.Offset, null, null, false);
-            }
-
             await base.Clear();
-            await StreamTransactionSender.SendItems(removedItems);
+
+            await OutputProducer.SendRemoveItems(removedItems);
         }
-
-        //private void Foo()
-        //{
-        //    var t = new Task(async () => await HandleCollectionChange(null, null));
-        //    t.RunSynchronously();
-        //}
-
-        //private async Task HandleCollectionChange(object sender, NotifyCollectionChangedEventArgs e)
-        //{
-        //    switch(e.Action)
-        //    {
-        //        case NotifyCollectionChangedAction.Add:
-        //            int newItemsCount = e.NewItems.Count;
-        //            var argsAdd = Enumerable.Range(e.NewStartingIndex, newItemsCount).Select(i => new ContainerElement<T>(GetReferenceForItem(i, true), List[i])).ToList();
-        //            await StreamProvider.SendItems(argsAdd);
-        //        break;
-        //        case NotifyCollectionChangedAction.Remove:
-        //            int oldItemsCount = e.OldItems.Count;
-        //            var argsDel = Enumerable.Range(e.OldStartingIndex, oldItemsCount).Select(i => new ContainerElement<T>(GetReferenceForItem(i, false), List[i])).ToList();
-        //            await StreamProvider.SendItems(argsDel);
-        //        break;
-        //        case NotifyCollectionChangedAction.Reset:
-        //            throw new NotImplementedException();
-        //        break;
-        //    }
-        //}
     }
 }

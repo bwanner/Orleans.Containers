@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Collections.Messages;
 using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Linq.Nodes
@@ -16,10 +17,10 @@ namespace Orleans.Streams.Linq.Nodes
             return TaskDone.Done;
         }
 
-        protected override async Task ProcessItemMessage(ItemMessage<TIn> itemMessage)
+        protected override async Task ProcessItemAddMessage(ItemAddMessage<TIn> itemMessage)
         {
             var resultList = itemMessage.Items.Where(item => _function(item)).ToList();
-            await StreamTransactionSender.SendItems(resultList, false);
+            await StreamTransactionSender.SendItems(resultList);
         }
     }
 }

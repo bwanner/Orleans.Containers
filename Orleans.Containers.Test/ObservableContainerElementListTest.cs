@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Orleans.Collections.Messages;
 using Orleans.Collections.Observable;
 using Orleans.Streams.Messages;
 using TestGrains;
@@ -17,7 +18,7 @@ namespace Orleans.Collections.Test
         public async Task TestNoInterfaceMatches()
         {
             DistributedPropertyChangedProcessor<DummyInt> l = new DistributedPropertyChangedProcessor<DummyInt>();
-            await l.ProcessItemMessage(new ItemMessage<DummyInt>(Enumerable.Range(0, 100).Select(x => new DummyInt(x)).ToList()));
+            await l.ProcessItemAddMessage(new ItemAddMessage<DummyInt>(Enumerable.Range(0, 100).Select(x => new DummyInt(x)).ToList()));
 
             Assert.AreEqual(0, l.KnownObjectCount);
         }
@@ -27,7 +28,7 @@ namespace Orleans.Collections.Test
         {
             var l = new DistributedPropertyChangedProcessor<TestObjectWithPropertyChange>();
             var o = new TestObjectWithPropertyChange(42);
-            await l.ProcessItemMessage(new ItemMessage<TestObjectWithPropertyChange>(new List<TestObjectWithPropertyChange>() {o}));
+            await l.ProcessItemAddMessage(new ItemAddMessage<TestObjectWithPropertyChange>(new List<TestObjectWithPropertyChange>() {o}));
 
             Assert.AreEqual(1, l.KnownObjectCount);
             Assert.IsTrue(l.IsKnownObject(o.Identifier));
@@ -38,7 +39,7 @@ namespace Orleans.Collections.Test
         {
             var l = new DistributedPropertyChangedProcessor<List<TestObjectWithPropertyChange>>();
             var objectList = Enumerable.Range(0, 100).Select(i => new TestObjectWithPropertyChange(42)).ToList();
-            await l.ProcessItemMessage(new ItemMessage<List<TestObjectWithPropertyChange>>(new List<List<TestObjectWithPropertyChange>> { objectList}));
+            await l.ProcessItemAddMessage(new ItemAddMessage<List<TestObjectWithPropertyChange>>(new List<List<TestObjectWithPropertyChange>> { objectList}));
 
             Assert.AreEqual(100, l.KnownObjectCount);
             foreach (var o in objectList)
@@ -53,7 +54,7 @@ namespace Orleans.Collections.Test
             var l = new DistributedPropertyChangedProcessor<List<TestObjectWithPropertyChange>>();
             var objectList1 = Enumerable.Range(0, 100).Select(i => new TestObjectWithPropertyChange(i)).ToList();
             var objectList2 = Enumerable.Range(0, 100).Select(i => new TestObjectWithPropertyChange(i)).ToList();
-            await l.ProcessItemMessage(new ItemMessage<List<TestObjectWithPropertyChange>>(new List<List<TestObjectWithPropertyChange>> { objectList1, objectList2 }));
+            await l.ProcessItemAddMessage(new ItemAddMessage<List<TestObjectWithPropertyChange>>(new List<List<TestObjectWithPropertyChange>> { objectList1, objectList2 }));
 
             Assert.AreEqual(200, l.KnownObjectCount);
             foreach (var o in objectList1)

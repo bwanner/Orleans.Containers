@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Collections.Messages;
 
 namespace Orleans.Streams.Endpoints
 {
@@ -11,42 +12,26 @@ namespace Orleans.Streams.Endpoints
     /// <typeparam name="T"></typeparam>
     public class MultiStreamListConsumer<T> : MultiStreamConsumer<T>
     {
-        private Func<T, T, bool> _sameItemFinder;
         public List<T> Items { get; private set; }
 
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="streamProvider">Stream provider to use.</param>
-        /// <param name="sameItemFinder">Replaces item if comparison returns true.</param>
-        public MultiStreamListConsumer(IStreamProvider streamProvider, Func<T, T, bool> sameItemFinder = null) : base(streamProvider)
+        public MultiStreamListConsumer(IStreamProvider streamProvider) : base(streamProvider)
         {
             Items = new List<T>();
-            StreamItemBatchReceivedFunc = AddItems;
-            _sameItemFinder = sameItemFinder;
         }
 
-        private Task AddItems(IEnumerable<T> items)
+        protected override void SetupMessageDispatcher(StreamMessageDispatchReceiver dispatcher)
         {
-            if (_sameItemFinder != null)
-            {
-                foreach (var item in items)
-                {
-                    var matchingIndex = Items.FindIndex(obj => _sameItemFinder(item, obj));
-                    if (matchingIndex >= 0)
-                    {
-                        Items[matchingIndex] = item;
-                    }
-                    else
-                    {
-                        Items.Add(item);
-                    }
-                }
-            }
-            else
-            {
-                Items.AddRange(items);
-            }
+            base.SetupMessageDispatcher(dispatcher);
+            dispatcher.Register<ItemAddMessage<T>>(ProcessItemAddMessage);
+        }
+
+        private Task ProcessItemAddMessage(ItemAddMessage<T> message)
+        {
+            Items.AddRange(message.Items);
             return TaskDone.Done;
         }
     }

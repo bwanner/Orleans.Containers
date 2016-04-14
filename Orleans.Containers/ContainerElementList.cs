@@ -118,6 +118,13 @@ namespace Orleans.Collections
             return newReferences;
         }
 
+        public ContainerElementReference<T> Add(T item)
+        {
+            var itemPosition = Collection.Count;
+            Collection.Add(item);
+            return GetReferenceForItem(itemPosition);
+        } 
+
         public ContainerElementReference<T> Remove(T item)
         {
             var index = Collection.IndexOf(item);
@@ -127,13 +134,13 @@ namespace Orleans.Collections
             }
 
             Collection.Remove(item);
-            return GetReferenceForItem(index, false);
+            return GetReferenceForItem(index);
         }
 
-        protected ContainerElementReference<T> GetReferenceForItem(int offset, bool itemExists = true)
+        protected ContainerElementReference<T> GetReferenceForItem(int offset)
         {
             return new ContainerElementReference<T>(_containerId, offset, _executorReference,
-                _executorGrainReference, itemExists);
+                _executorGrainReference);
         }
 
         private ContainerElement<T> CreateContainerElement(int offset)

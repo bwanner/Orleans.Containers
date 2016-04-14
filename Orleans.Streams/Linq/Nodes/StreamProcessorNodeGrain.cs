@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Orleans.Collections.Messages;
 using Orleans.Streams.Endpoints;
 using Orleans.Streams.Messages;
 
@@ -11,7 +12,7 @@ namespace Orleans.Streams.Linq.Nodes
         private const string StreamProviderNamespace = "CollectionStreamProvider";
         private SingleStreamTransactionReceiver _streamTransactionReceiver;
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
-        protected SingleStreamTransactionSender<TOut> StreamTransactionSender;
+        protected StreamMessageFacade<TOut> StreamTransactionSender;
         protected StreamMessageSender StreamMessageSender;
 
         public async Task SetInput(StreamIdentity inputStream)
@@ -56,7 +57,7 @@ namespace Orleans.Streams.Linq.Nodes
         {
             base.OnActivateAsync();
             StreamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderNamespace), this.GetPrimaryKey());
-            StreamTransactionSender = new SingleStreamTransactionSender<TOut>(StreamMessageSender);
+            StreamTransactionSender = new StreamMessageFacade<TOut>(StreamMessageSender);
             StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderNamespace), TearDown);
             _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
             RegisterMessages();
@@ -66,10 +67,10 @@ namespace Orleans.Streams.Linq.Nodes
         protected virtual void RegisterMessages()
         {
             StreamMessageDispatchReceiver.Register<TransactionMessage>(ProcessTransactionMessage);
-            StreamMessageDispatchReceiver.Register<ItemMessage<TIn>>(ProcessItemMessage);
+            StreamMessageDispatchReceiver.Register<ItemAddMessage<TIn>>(ProcessItemAddMessage);
         }
 
-        protected abstract Task ProcessItemMessage(ItemMessage<TIn> itemMessage);
+        protected abstract Task ProcessItemAddMessage(ItemAddMessage<TIn> itemMessage);
 
         protected async Task ProcessTransactionMessage(TransactionMessage transactionMessage)
         {

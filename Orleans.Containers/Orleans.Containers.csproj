@@ -75,6 +75,7 @@
     <Compile Include="ContainerElementList.cs" />
     <Compile Include="ContainerElement.cs" />
     <Compile Include="ContainerElementAddress.cs" />
+    <Compile Include="Endpoints\ContainerListConsumer.cs" />
     <Compile Include="IElementEnumerator.cs" />
     <Compile Include="ItemPropertyChangedMessage.cs" />
     <Compile Include="Observable\ContainerElementPropertyChangedEventArgs.cs" />

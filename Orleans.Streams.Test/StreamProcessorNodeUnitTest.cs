@@ -58,7 +58,6 @@ namespace Orleans.Collections.Test
 
             var itemsToSend = new List<int> {-1, 5, 30};
 
-
             var provider = GrainClient.GetStreamProvider(StreamProvider);
             var testProvider = new MultiStreamProvider<int>(provider, 1);
             await processor.SetInput((await testProvider.GetStreamIdentities()).First());

@@ -12,10 +12,28 @@ namespace Orleans.Collections
         public IElementExecutor<T> Executor => _executorReference ?? _executorGrainReference;
 
         public ContainerElementReference(Guid containerId, int offset, IElementExecutor<T> executorReference,
-            IElementExecutor<T> executorGrainReference, bool exists) : base(containerId, offset, exists)
+            IElementExecutor<T> executorGrainReference) : base(containerId, offset)
         {
             _executorReference = executorReference;
             _executorGrainReference = executorGrainReference;
+        }
+
+        protected bool Equals(ContainerElementReference<T> other)
+        {
+            return base.Equals(other);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((ContainerElementReference<T>) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
     }
 }

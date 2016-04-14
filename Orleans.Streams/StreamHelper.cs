@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Orleans.Streams
 {
@@ -50,5 +52,16 @@ namespace Orleans.Streams
                 }
             }
         }
+
+        /// <summary>
+        /// Wraps a single item into an IEnumerable.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public static IEnumerable<T> ToIEnumerable<T>(this T obj)
+        {
+            yield return obj;
+        } 
     }
 }

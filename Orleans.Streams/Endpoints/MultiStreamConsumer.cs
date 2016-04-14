@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Collections.Messages;
 using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
@@ -77,12 +78,17 @@ namespace Orleans.Streams.Endpoints
                 var consumer = new SingleStreamTransactionReceiver(dispatcher);
 
                 await dispatcher.Subscribe(identity);
-                dispatcher.Register<ItemMessage<T>>(ProcessItemMessage);
-                dispatcher.Register<TransactionMessage>(ProcessTransactionMessage);
+                SetupMessageDispatcher(dispatcher);
 
                 MessageDispatchers.Add(dispatcher);
                 TransactionManagers.Add(consumer);
             }
+        }
+
+        protected virtual void SetupMessageDispatcher(StreamMessageDispatchReceiver dispatcher)
+        {
+            dispatcher.Register<ItemAddMessage<T>>(ProcessItemMessage);
+            dispatcher.Register<TransactionMessage>(ProcessTransactionMessage);
         }
 
         /// <summary>
@@ -110,7 +116,7 @@ namespace Orleans.Streams.Endpoints
             _tearDownExecuted = true;
         }
 
-        public async Task ProcessItemMessage(ItemMessage<T> message)
+        public async Task ProcessItemMessage(ItemAddMessage<T> message)
         {
             if (StreamItemBatchReceivedFunc != null)
             {

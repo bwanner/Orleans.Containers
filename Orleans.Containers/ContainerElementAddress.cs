@@ -6,14 +6,11 @@ namespace Orleans.Collections
     public class ContainerElementAddress<T> : IEquatable<ContainerElementAddress<T>>
     {
 
-        public ContainerElementAddress(Guid containerId, int offset, bool exists)
+        public ContainerElementAddress(Guid containerId, int offset)
         {
             ContainerId = containerId;
             Offset = offset;
-            Exists = exists;
         }
-
-        public bool Exists { get; }
 
         public Guid ContainerId { get; }
         public int Offset { get; }
