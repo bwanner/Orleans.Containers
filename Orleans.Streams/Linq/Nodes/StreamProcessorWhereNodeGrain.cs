@@ -20,7 +20,7 @@ namespace Orleans.Streams.Linq.Nodes
         protected override async Task ProcessItemAddMessage(ItemAddMessage<TIn> itemMessage)
         {
             var resultList = itemMessage.Items.Where(item => _function(item)).ToList();
-            await StreamTransactionSender.SendItems(resultList);
+            await StreamSender.SendItems(resultList);
         }
     }
 }

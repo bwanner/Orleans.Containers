@@ -24,8 +24,6 @@ namespace Orleans.Collections.Observable
             StreamMessageDispatchReceiver.Register<ItemAddMessage<T>>(_propertyChangedProcessor.ProcessItemAddMessage);
             StreamMessageDispatchReceiver.Register<ItemRemoveMessage<T>>(_propertyChangedProcessor.ProcessItemRemoveMessage);
             StreamMessageDispatchReceiver.Register<ItemPropertyChangedMessage>(_propertyChangedProcessor.ProcessItemPropertyChangedMessage);
-            // Forward all property changes
-            StreamMessageDispatchReceiver.Register<ItemPropertyChangedMessage>(StreamMessageSender.SendMessage);
         }
 
         public override async Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)

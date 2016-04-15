@@ -12,7 +12,7 @@ namespace Orleans.Streams.Endpoints
     /// <typeparam name="T">Type of items to stream.</typeparam>
     public class MultiStreamProvider<T> : ITransactionalStreamProviderAggregate<T>
     {
-        private readonly List<StreamMessageFacade<T>> _providers;
+        private readonly List<StreamMessageSenderFacade<T>> _providers;
 
         private bool _tearDownExecuted;
         private List<StreamMessageSender> _senders;
@@ -20,7 +20,7 @@ namespace Orleans.Streams.Endpoints
         public MultiStreamProvider(IStreamProvider provider, int numberOutputStreams)
         {
             _senders = Enumerable.Range(0, numberOutputStreams).Select(i => new StreamMessageSender(provider)).ToList();
-            _providers = _senders.Select(s => new StreamMessageFacade<T>(s)).ToList();
+            _providers = _senders.Select(s => new StreamMessageSenderFacade<T>(s)).ToList();
             _tearDownExecuted = false;
         }
 
@@ -55,7 +55,7 @@ namespace Orleans.Streams.Endpoints
             var chunks = data.BatchIEnumerable(itemsPerProvider);
             await Task.WhenAll(_providers.Select(p => p.StartTransaction(transactionId)));
             var tasks =
-                _providers.Zip(chunks, (p, c) => new Tuple<StreamMessageFacade<T>, IList<T>>(p, c))
+                _providers.Zip(chunks, (p, c) => new Tuple<StreamMessageSenderFacade<T>, IList<T>>(p, c))
                     .Select(t => t.Item1.SendItems(t.Item2));
             await Task.WhenAll(tasks);
             await Task.WhenAll(_providers.Select(p => p.EndTransaction(transactionId)));

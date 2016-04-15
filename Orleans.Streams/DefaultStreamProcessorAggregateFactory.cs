@@ -8,38 +8,33 @@ namespace Orleans.Streams
 {
     public class DefaultStreamProcessorAggregateFactory : IStreamProcessorAggregateFactory
     {
-        private readonly IGrainFactory _factory;
+        private readonly IGrainFactory _grainFactory;
 
-        public DefaultStreamProcessorAggregateFactory(IGrainFactory factory)
+        public DefaultStreamProcessorAggregateFactory(IGrainFactory grainFactory)
         {
-            _factory = factory;
+            _grainFactory = grainFactory;
         }
 
-        public IStreamProcessorSelectAggregate<TIn, TOut> CreateSelect<TIn, TOut>()
+        public IGrainFactory GrainFactory
         {
-            return _factory.GetGrain<IStreamProcessorSelectAggregate<TIn, TOut>>(Guid.NewGuid());
+            get { return _grainFactory; }
         }
 
-        public IGrainFactory Factory
+        public async Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Expression<Func<TIn, TOut>> selectionFunc, IList<StreamIdentity> streamIdentities)
         {
-            get { return _factory; }
-        }
-
-        public async Task<IStreamProcessorSelectAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Expression<Func<TIn, TOut>> selectionFunc, IList<StreamIdentity> streamIdentities)
-        {
-            var processorAggregate =_factory.GetGrain<IStreamProcessorSelectAggregate<TIn, TOut>>(Guid.NewGuid());
+            var processorAggregate =_grainFactory.GetGrain<IStreamProcessorSelectAggregate<TIn, TOut>>(Guid.NewGuid());
             
-            await processorAggregate.SetFunction(new SerializableFunc<TIn, TOut>(selectionFunc));
+            await processorAggregate.SetFunction(selectionFunc);
             await processorAggregate.SetInput(streamIdentities);
 
             return processorAggregate;
         }
 
-        public async Task<IStreamProcessorWhereAggregate<TIn>> CreateWhere<TIn>(Expression<Func<TIn, bool>> filterFunc, IList<StreamIdentity> streamIdentities)
+        public async Task<IStreamProcessorAggregate<TIn, TIn>> CreateWhere<TIn>(Expression<Func<TIn, bool>> filterFunc, IList<StreamIdentity> streamIdentities)
         {
-            var processorAggregate = _factory.GetGrain<IStreamProcessorWhereAggregate<TIn>>(Guid.NewGuid());
+            var processorAggregate = _grainFactory.GetGrain<IStreamProcessorWhereAggregate<TIn>>(Guid.NewGuid());
 
-            await processorAggregate.SetFunction(new SerializableFunc<TIn, bool>(filterFunc));
+            await processorAggregate.SetFunction(filterFunc);
             await processorAggregate.SetInput(streamIdentities);
 
             return processorAggregate;

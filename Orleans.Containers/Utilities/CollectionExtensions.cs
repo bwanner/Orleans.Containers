@@ -129,7 +129,7 @@ namespace Orleans.Collections.Utilities
         public static async Task<IContainerGrain<TIn>> ToContainer<TOldIn,TIn>(
             this StreamProcessorChain<TOldIn, TIn> previousNode)
         {
-            var processorAggregate = previousNode.Factory.Factory.GetGrain<IObservableContainerGrain<TIn>>(Guid.NewGuid());
+            var processorAggregate = previousNode.Factory.GrainFactory.GetGrain<IObservableContainerGrain<TIn>>(Guid.NewGuid());
             await processorAggregate.SetInput(await previousNode.GetStreamIdentities());
 
             return processorAggregate;

@@ -11,10 +11,10 @@ namespace Orleans.Streams
     /// </summary>
     public interface IStreamProcessorAggregateFactory
     {
-        IGrainFactory Factory { get; }
+        IGrainFactory GrainFactory { get; }
 
-        Task<IStreamProcessorSelectAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Expression<Func<TIn, TOut>> selectionFunc, IList<StreamIdentity> streamIdentities);
+        Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Expression<Func<TIn, TOut>> selectionFunc, IList<StreamIdentity> streamIdentities);
         
-        Task<IStreamProcessorWhereAggregate<TIn>> CreateWhere<TIn>(Expression<Func<TIn, bool>> filterFunc, IList<StreamIdentity> streamIdentities);
+        Task<IStreamProcessorAggregate<TIn, TIn>> CreateWhere<TIn>(Expression<Func<TIn, bool>> filterFunc, IList<StreamIdentity> streamIdentities);
     }
 }

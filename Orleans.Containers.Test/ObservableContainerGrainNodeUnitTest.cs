@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Orleans.Collections.Endpoints;
+using Orleans.Collections.Messages;
 using Orleans.Collections.Observable;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;
@@ -100,7 +101,6 @@ namespace Orleans.Collections.Test
             Assert.AreEqual(0, resultConsumer.Items.Count);
         }
 
-        [Ignore]
         [TestMethod]
         public async Task TestPropertyChangedObjectChangeIsAppliedAndForwarded()
         {
@@ -118,8 +118,8 @@ namespace Orleans.Collections.Test
                 propertyChangedMessages.Add(message);
                 return TaskDone.Done;
             });
-            var itemMessages = new List<ItemMessage<ContainerElement<TestObjectWithPropertyChange>>>();
-            receiver.Register<ItemMessage<ContainerElement<TestObjectWithPropertyChange>>>(message =>
+            var itemMessages = new List<ItemAddMessage<ContainerElement<TestObjectWithPropertyChange>>>();
+            receiver.Register<ItemAddMessage<ContainerElement<TestObjectWithPropertyChange>>>(message =>
             {
                 itemMessages.Add(message);
                 return TaskDone.Done;
@@ -147,7 +147,6 @@ namespace Orleans.Collections.Test
             Assert.AreEqual("Value", changeEventArgs.PropertyName);
         }
 
-        [Ignore]
         [TestMethod]
         public async Task TestPropertyChangedMessageIsCreatedAndSent()
         {
@@ -165,8 +164,8 @@ namespace Orleans.Collections.Test
                 propertyChangedMessages.Add(message);
                 return TaskDone.Done;
             });
-            var itemMessages = new List<ItemMessage<ContainerElement<TestObjectWithPropertyChange>>>();
-            receiver.Register<ItemMessage<ContainerElement<TestObjectWithPropertyChange>>>(message =>
+            var itemMessages = new List<ItemAddMessage<ContainerElement<TestObjectWithPropertyChange>>>();
+            receiver.Register<ItemAddMessage<ContainerElement<TestObjectWithPropertyChange>>>(message =>
             {
                 itemMessages.Add(message);
                 return TaskDone.Done;

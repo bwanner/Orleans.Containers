@@ -10,18 +10,19 @@ namespace Orleans.Streams.Endpoints
     ///     Makes default stream operations available via its interface.
     /// </summary>
     /// <typeparam name="T">Data type transmitted via the stream</typeparam>
-    public class StreamMessageFacade<T> : ITransactionalStreamTearDown
+    public class StreamMessageSenderFacade<T> : ITransactionalStreamTearDown, ITransactionalStreamProvider
     {
         private readonly List<T> _addItems = new List<T>();
         private readonly List<T> _updateItems = new List<T>();
         private readonly List<T> _removeItems = new List<T>();
         protected readonly StreamMessageSender Sender;
 
-        public StreamMessageFacade(StreamMessageSender sender)
+        public StreamMessageSenderFacade(StreamMessageSender sender)
         {
             Sender = sender;
         }
 
+        // TODO remove
         public async Task SendItems(IEnumerable<T> items)
         {
             var message = new ItemAddMessage<T>(items);
@@ -87,6 +88,11 @@ namespace Orleans.Streams.Endpoints
         public Task<bool> IsTearedDown()
         {
             return Sender.IsTearedDown();
+        }
+
+        public Task<StreamIdentity> GetStreamIdentity()
+        {
+            return ((ITransactionalStreamProvider) Sender).GetStreamIdentity();
         }
     }
 }

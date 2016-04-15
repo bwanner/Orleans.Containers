@@ -20,17 +20,17 @@ namespace Orleans.Collections
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
         private SingleStreamTransactionReceiver _streamTransactionReceiver;
         protected ContainerElementList<T> Elements;
-        protected StreamMessageFacade<ContainerElement<T>> OutputProducer;
+        protected StreamMessageSenderFacade<ContainerElement<T>> OutputProducer;
 
         public virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
             return Task.FromResult(Elements.AddRange(items));
         }
 
-        protected StreamMessageFacade<ContainerElement<T>> SetupSenderStream(StreamIdentity streamIdentity)
+        protected StreamMessageSenderFacade<ContainerElement<T>> SetupSenderStream(StreamIdentity streamIdentity)
         {
             var sender = new StreamMessageSender(GetStreamProvider(StreamProviderName), streamIdentity);
-            var transactionalSender = new StreamMessageFacade<ContainerElement<T>>(sender);
+            var transactionalSender = new StreamMessageSenderFacade<ContainerElement<T>>(sender);
 
             return transactionalSender;
         }
@@ -210,7 +210,7 @@ namespace Orleans.Collections
         public override async Task OnActivateAsync()
         {
             StreamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
-            OutputProducer = new StreamMessageFacade<ContainerElement<T>>(StreamMessageSender);
+            OutputProducer = new StreamMessageSenderFacade<ContainerElement<T>>(StreamMessageSender);
             StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), TearDown);
             _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
             StreamMessageDispatchReceiver.Register<ItemAddMessage<T>>(ProcessItemMessage);

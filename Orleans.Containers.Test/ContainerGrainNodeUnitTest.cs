@@ -93,7 +93,6 @@ namespace Orleans.Collections.Test
         }
 
         [TestMethod]
-        [Ignore]
         public async Task TestExecuteSync()
         {
             var l = Enumerable.Range(1, 10).Select(x => new DummyInt(x)).ToList();
@@ -143,7 +142,6 @@ namespace Orleans.Collections.Test
         }
 
         [TestMethod]
-        [Ignore]
         public async Task TestExecuteLambda()
         {
             var l = Enumerable.Range(1, 10).Select(x => new DummyInt(x)).ToList();
@@ -170,7 +168,6 @@ namespace Orleans.Collections.Test
         }
 
         [TestMethod]
-        [Ignore]
         public async Task TestExecuteBatchLambda()
         {
 
@@ -198,7 +195,6 @@ namespace Orleans.Collections.Test
         }
 
         [TestMethod]
-        [Ignore]
         public async Task TestExecuteOnItemReference()
         {
             var item = new DummyInt(5);
