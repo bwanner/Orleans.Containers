@@ -3,11 +3,11 @@ using System.Threading.Tasks;
 
 namespace Orleans.Streams.Linq
 {
-    public class StreamProcessorChainStart<TIn, TOut> : StreamProcessorChain<TIn, TOut>
+    public class StreamProcessorChainStart<TIn, TOut, TFactory> : StreamProcessorChain<TIn, TOut, TFactory> where TFactory : IStreamProcessorAggregateFactory
     {
         private readonly ITransactionalStreamProviderAggregate<TIn> _source;
 
-        public StreamProcessorChainStart(IStreamProcessorAggregate<TIn, TOut> aggregate, ITransactionalStreamProviderAggregate<TIn> source, IStreamProcessorAggregateFactory factory) : base(aggregate, factory)
+        public StreamProcessorChainStart(IStreamProcessorAggregate<TIn, TOut> aggregate, ITransactionalStreamProviderAggregate<TIn> source, TFactory factory) : base(aggregate, factory)
         {
             _source = source;
         }
@@ -18,23 +18,24 @@ namespace Orleans.Streams.Linq
     /// </summary>
     /// <typeparam name="TIn"></typeparam>
     /// <typeparam name="TOut"></typeparam>
-    public class StreamProcessorChain<TIn, TOut> : IStreamProcessorChain<TOut>
+    /// <typeparam name="TFactory"></typeparam>
+    public class StreamProcessorChain<TIn, TOut, TFactory> : IStreamProcessorChain<TOut, TFactory> where TFactory : IStreamProcessorAggregateFactory
     {
-        private readonly IStreamProcessorChain<TIn> _previous;
+        private readonly IStreamProcessorChain<TIn, TFactory> _previous;
         private bool _tearDownExecuted = false;
-        internal IStreamProcessorAggregate<TIn, TOut> Aggregate { get; private set; }
+        public IStreamProcessorAggregate<TIn, TOut> Aggregate { get; private set; }
 
-        public IStreamProcessorAggregateFactory Factory { get; private set; }
+        public TFactory Factory { get; private set; }
 
 
-        public StreamProcessorChain(IStreamProcessorAggregate<TIn, TOut> aggregate, IStreamProcessorAggregateFactory factory)
+        public StreamProcessorChain(IStreamProcessorAggregate<TIn, TOut> aggregate, TFactory factory)
         {
             Aggregate = aggregate;
             Factory = factory;
             _previous = null;
         }
 
-        public StreamProcessorChain(IStreamProcessorAggregate<TIn, TOut> aggregate, IStreamProcessorChain<TIn> previous)
+        public StreamProcessorChain(IStreamProcessorAggregate<TIn, TOut> aggregate, IStreamProcessorChain<TIn, TFactory> previous)
         {
             Aggregate = aggregate;
             Factory = previous.Factory;
@@ -65,8 +66,8 @@ namespace Orleans.Streams.Linq
         }
     }
 
-    public interface IStreamProcessorChain<TOut> : ITransactionalStreamProviderAggregate<TOut>
+    public interface IStreamProcessorChain<TOut, TFactory> : ITransactionalStreamProviderAggregate<TOut> where TFactory : IStreamProcessorAggregateFactory
     {
-        IStreamProcessorAggregateFactory Factory { get; }
+        TFactory Factory { get; }
     }
 }

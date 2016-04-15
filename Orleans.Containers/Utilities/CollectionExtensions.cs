@@ -15,6 +15,36 @@ namespace Orleans.Collections.Utilities
         /// Add elements to a collection in batches and parallel between containers in the collection.
         /// </summary>
         /// <typeparam name="T">Type of items to add.</typeparam>
+        /// <typeparam name="TX"></typeparam>
+        /// <param name="consumers">Consumers to send data to.</param>
+        /// <param name="elements">Items to be added.</param>
+        /// <returns>Task that is completed after all items are added.</returns>
+        public static async Task<Dictionary<ContainerElementReference<T>, T>> BatchAddReturnDictionary<TX, T>(this ICollection<TX> consumers, IReadOnlyCollection<T> elements, int batchSize = 4096) where TX : IBatchItemAdder<T>
+        {
+            var elementReferences = await consumers.BatchAdd(elements);
+
+            return elementReferences.Zip(elements, (reference, value) => new {reference, value}).ToDictionary(x => x.reference, x => x.value);
+        }
+
+        /// <summary>
+        /// Add elements to a collection in batches and parallel between containers in the collection.
+        /// </summary>
+        /// <typeparam name="T">Type of items to add.</typeparam>
+        /// <param name="collection">Collection to store items to.</param>
+        /// <param name="elements">Items to be added.</param>
+        /// <returns>Task that is completed after all items are added.</returns>
+        public static async Task<Dictionary<ContainerElementReference<T>, T>> BatchAddReturnDictionary<T>(this IContainerGrain<T> collection, IReadOnlyCollection<T> elements)
+        {
+            var receivers = await collection.GetItemAdders();
+
+            return await BatchAddReturnDictionary(receivers, elements);
+        }
+
+
+        /// <summary>
+        /// Add elements to a collection in batches and parallel between containers in the collection.
+        /// </summary>
+        /// <typeparam name="T">Type of items to add.</typeparam>
         /// <param name="collection">Collection to store items to.</param>
         /// <param name="elements">Items to be added.</param>
         /// <returns>Task that is completed after all items are added.</returns>
@@ -116,39 +146,5 @@ namespace Orleans.Collections.Utilities
 
             return chunks;
         }
-
-        #region ToContainer
-
-        /// <summary>
-        /// Output StreamProcessorChain to observable container.
-        /// </summary>
-        /// <typeparam name="TOldIn"></typeparam>
-        /// <typeparam name="TIn"></typeparam>
-        /// <param name="previousNode"></param>
-        /// <returns></returns>
-        public static async Task<IContainerGrain<TIn>> ToContainer<TOldIn,TIn>(
-            this StreamProcessorChain<TOldIn, TIn> previousNode)
-        {
-            var processorAggregate = previousNode.Factory.GrainFactory.GetGrain<IObservableContainerGrain<TIn>>(Guid.NewGuid());
-            await processorAggregate.SetInput(await previousNode.GetStreamIdentities());
-
-            return processorAggregate;
-        }
-
-        /// <summary>
-        /// Output StreamProcessorChain to observable container.
-        /// </summary>
-        /// <typeparam name="TOldIn"></typeparam>
-        /// <typeparam name="TIn"></typeparam>
-        /// <param name="previousNodeTask"></param>
-        /// <returns></returns>
-        public static async Task<IContainerGrain<TIn>> ToContainer<TOldIn, TIn>(
-            this Task<StreamProcessorChain<TOldIn, TIn>> previousNodeTask)
-        {
-            var previousNode = await previousNodeTask;
-            return await ToContainer(previousNode);
-        }
-
-        #endregion
     }
 }

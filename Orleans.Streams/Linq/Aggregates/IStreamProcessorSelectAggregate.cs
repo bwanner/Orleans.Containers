@@ -7,4 +7,6 @@ namespace Orleans.Streams.Linq.Aggregates
     {
         Task SetFunction(SerializableFunc<TIn, TOut> function);
     }
+
+    
 }

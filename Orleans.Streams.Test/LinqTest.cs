@@ -16,12 +16,14 @@ namespace Orleans.Streams.Test
     {
         private const string StreamProviderString = "CollectionStreamProvider";
         private IStreamProvider _provider;
+        private DefaultStreamProcessorAggregateFactory _factory;
 
 
         [TestInitialize]
         public void TestInitialize()
         {
             _provider = GrainClient.GetStreamProvider(StreamProviderString);
+            _factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
         }
 
         [ClassCleanup]
@@ -98,7 +100,8 @@ namespace Orleans.Streams.Test
         {
             var source = new MultiStreamProvider<int>(_provider, 2);
 
-            var query = await source.Select(x => x, GrainClient.GrainFactory);
+            var factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
+            var query = await source.Select(x => x, factory);
             var queryOutputStreams = await query.GetStreamIdentities();
 
             var resultConsumer = new TestTransactionalStreamConsumerAggregate<int>(_provider);
@@ -134,8 +137,8 @@ namespace Orleans.Streams.Test
             var aggregateTwo = await factory.CreateSelect<int, int>(_ => _, await aggregateOne.GetStreamIdentities());
             
 
-            var firstElement = new StreamProcessorChainStart<int,int>(aggregateOne, source, new DefaultStreamProcessorAggregateFactory(GrainFactory));
-            var query = new StreamProcessorChain<int, int>(aggregateTwo, firstElement);
+            var firstElement = new StreamProcessorChainStart<int, int, DefaultStreamProcessorAggregateFactory>(aggregateOne, source, new DefaultStreamProcessorAggregateFactory(GrainFactory));
+            var query = new StreamProcessorChain<int, int, DefaultStreamProcessorAggregateFactory>(aggregateTwo, firstElement);
 
             Assert.IsFalse(await aggregateOne.IsTearedDown());
             Assert.IsFalse(await aggregateTwo.IsTearedDown());
@@ -147,7 +150,7 @@ namespace Orleans.Streams.Test
         }
 
         private async Task TestMultiLevelDataPass<TIn, TOut>(
-            Func<MultiStreamProvider<TIn>, IStreamProcessorAggregateFactory, Task<IStreamProcessorChain<TOut>>>
+            Func<MultiStreamProvider<TIn>, DefaultStreamProcessorAggregateFactory, Task<IStreamProcessorChain<TOut, DefaultStreamProcessorAggregateFactory>>>
                 createStreamProcessingChainFunc, List<List<TIn>> inputChunks, List<List<TOut>> outputChunks,
             Action<List<TOut>, List<TOut>> resultAssertion)
         {
@@ -158,7 +161,7 @@ namespace Orleans.Streams.Test
 
             var source = new MultiStreamProvider<TIn>(_provider, 2);
 
-            var query = await createStreamProcessingChainFunc(source, new DefaultStreamProcessorAggregateFactory(GrainFactory));
+            var query = await createStreamProcessingChainFunc(source, _factory);
             var queryOutputStreams = await query.GetStreamIdentities();
 
             var resultConsumer = new TestTransactionalStreamConsumerAggregate<TOut>(_provider);

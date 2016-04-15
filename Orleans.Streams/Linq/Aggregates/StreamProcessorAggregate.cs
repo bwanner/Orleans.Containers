@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Orleans.Streams.Linq.Aggregates
 {
-    public abstract class StreamProcessorAggregate<TIn, TOut, TNode> : Grain, IStreamProcessorAggregate<TIn, TOut, TNode>
+    public abstract class StreamProcessorAggregate<TIn, TOut, TNode> : Grain, IStreamProcessorAggregate<TIn, TOut>
         where TNode : IStreamProcessorNodeGrain<TIn, TOut>
     {
         protected List<TNode> ProcessorNodes;
