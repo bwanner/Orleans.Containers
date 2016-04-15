@@ -50,7 +50,6 @@ namespace Orleans.Collections.Test
         }
 
         [TestMethod]
-        [Ignore]
         public async Task ExecuteLambdaIncrement()
         {
             var distributedCollection = GetRandomDistributedCollection<DummyInt>();

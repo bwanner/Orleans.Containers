@@ -19,7 +19,7 @@ namespace Orleans.Collections.Observable
             await base.OnActivateAsync();
             _propertyChangedProcessor = new DistributedPropertyChangedProcessor<T>();
             _propertyChangedProcessor.ContainerPropertyChanged +=
-                change => StreamMessageSender.AddToMessageQueue(new ItemPropertyChangedMessage(change)); 
+                change => OutputProducer.EnqueueMessage(new ItemPropertyChangedMessage(change)); 
 
             StreamMessageDispatchReceiver.Register<ItemAddMessage<T>>(_propertyChangedProcessor.ProcessItemAddMessage);
             StreamMessageDispatchReceiver.Register<ItemRemoveMessage<T>>(_propertyChangedProcessor.ProcessItemRemoveMessage);

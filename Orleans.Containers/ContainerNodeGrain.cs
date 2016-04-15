@@ -98,7 +98,7 @@ namespace Orleans.Collections
                 }
             }
 
-            await StreamMessageSender.SendMessagesFromQueue();
+            await OutputProducer.FlushQueue();
         }
 
         public Task<IList<object>> ExecuteAsync(Func<T, Task<object>> func)
@@ -110,7 +110,7 @@ namespace Orleans.Collections
         {
             var results = Elements.Elements.Select(item => func(item, state)).ToList();
             var resultSet = await Task.WhenAll(results);
-            await StreamMessageSender.SendMessagesFromQueue();
+            await OutputProducer.FlushQueue();
             return new List<object>(resultSet);
         }
 
@@ -123,7 +123,7 @@ namespace Orleans.Collections
         {
             var curItem = Elements.GetElement(reference);
             var result = await func(curItem, state);
-            await StreamMessageSender.SendMessagesFromQueue();
+            await OutputProducer.FlushQueue();
             return result;
         }
 
@@ -147,7 +147,7 @@ namespace Orleans.Collections
                 }
             }
 
-            await StreamMessageSender.SendMessagesFromQueue();
+            await OutputProducer.FlushQueue();
         }
 
         public Task<IList<object>> ExecuteSync(Func<T, object> func)
@@ -164,14 +164,14 @@ namespace Orleans.Collections
             var curItem = Elements.GetElement(reference);
             var result = func(curItem, state);
 
-            await StreamMessageSender.SendMessagesFromQueue();
+            await OutputProducer.FlushQueue();
             return result;
         }
 
         public async Task<IList<object>> ExecuteSync(Func<T, object, object> func, object state)
         {
             IList<object> results = Elements.Elements.Select(item => func(item, state)).ToList();
-            await StreamMessageSender.SendMessagesFromQueue();
+            await OutputProducer.FlushQueue();
             return results;
         }
 
@@ -192,33 +192,31 @@ namespace Orleans.Collections
 
         public async Task<StreamIdentity> GetStreamIdentity()
         {
-            return await StreamMessageSender.GetStreamIdentity();
+            return await OutputProducer.GetStreamIdentity();
         }
 
         public async Task<bool> IsTearedDown()
         {
-            var tearDownStates = await Task.WhenAll(StreamMessageDispatchReceiver.IsTearedDown(), StreamMessageSender.IsTearedDown());
+            var tearDownStates = await Task.WhenAll(StreamMessageDispatchReceiver.IsTearedDown(), OutputProducer.IsTearedDown());
 
             return tearDownStates[0] && tearDownStates[1];
         }
 
         public async Task TearDown()
         {
-            await StreamMessageSender.TearDown();
+            await OutputProducer.TearDown();
         }
 
         public override async Task OnActivateAsync()
         {
-            StreamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
-            OutputProducer = new StreamMessageSenderFacade<ContainerElement<T>>(StreamMessageSender);
+            var streamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
+            OutputProducer = new StreamMessageSenderFacade<ContainerElement<T>>(streamMessageSender);
             StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), TearDown);
             _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
             StreamMessageDispatchReceiver.Register<ItemAddMessage<T>>(ProcessItemMessage);
             Elements = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
             await base.OnActivateAsync();
         }
-
-        public StreamMessageSender StreamMessageSender { get; set; }
 
         protected virtual async Task ProcessItemMessage(ItemAddMessage<T> message)
         {

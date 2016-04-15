@@ -69,6 +69,11 @@ namespace Orleans.Streams.Endpoints
             _removeItems.AddRange(items);
         }
 
+        public void EnqueueMessage(IStreamMessage message)
+        {
+            Sender.AddToMessageQueue(message);
+        }
+
         public async Task FlushQueue()
         {
             await Sender.SendMessage(new ItemAddMessage<T>(_addItems));
@@ -78,6 +83,8 @@ namespace Orleans.Streams.Endpoints
             _addItems.Clear();
             _updateItems.Clear();
             _removeItems.Clear();
+
+            await Sender.SendMessagesFromQueue();
         }
 
         public Task TearDown()
