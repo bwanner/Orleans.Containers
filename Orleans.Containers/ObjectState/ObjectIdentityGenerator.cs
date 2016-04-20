@@ -19,7 +19,7 @@ namespace Orleans.Collections.ObjectState
             if (!_weakTable.TryGetValue(obj, out identifier))
             {
                 bool firstTime = false;
-                identifier = new ObjectIdentifier(_generator.GetId(obj, out firstTime));
+                identifier = new ObjectIdentifier(_generator.GetId(obj, out firstTime), Guid.NewGuid());
                 _weakTable.Add(obj, identifier);
             }
 
@@ -28,7 +28,18 @@ namespace Orleans.Collections.ObjectState
 
         public void SetId(ObjectIdentifier identifier, object obj)
         {
-            _weakTable.Add(obj, identifier);
+            ObjectIdentifier currentIdentifier = null;
+            if (_weakTable.TryGetValue(obj, out currentIdentifier))
+            {
+                if (!currentIdentifier.Equals(identifier))
+                {
+                    throw new ArgumentException();
+                }
+            }
+            else
+            {
+                _weakTable.Add(obj, identifier);
+            }
         }
     }
 }

@@ -11,9 +11,10 @@ using Orleans.Collections.ObjectState;
 namespace Orleans.Collections.Observable
 {
     /// <summary>
-    ///     All objects that are added are traversed and properties of type
-    ///     IContainerElementNotifyPropertyChanged and observable collections annotated with ContainerNotifyCollectionChanged
-    ///     attribute are stored for supporting property changed across containers.
+    /// Processes incoming items or changes to them. Items are replaced by their local copies represented through the same ObjectIdentifier if available.
+    /// Otherwise they are remembered so updates on object level can be provided for:
+    ///     - Classes implementing IContainerElementNotifyPropertyChanged
+    ///     - IList and INotifyCollectionChanged implementing objects (e.g. ObservableCollection) marked with ContainerNotifyCollectionChangedAttribute.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class IncomingChangeProcessor<T> : ChangeProcessor<T>
@@ -30,16 +31,16 @@ namespace Orleans.Collections.Observable
         }
 
 
-        public Task ProcessItemAddMessage(ObservableItemAddMessage<T> message)
+        public Task<IEnumerable<T>> ProcessItemAddMessage(ObservableItemAddMessage<T> message)
         {
-            AddItems(message.Items, message.Identities);
-            return TaskDone.Done;
+            var localItems = AddItems(message.Items, message.Identities);
+            return Task.FromResult((IEnumerable<T>) localItems);
         }
 
-        public Task ProcessItemAddMessage(ItemAddMessage<T> message)
+        public Task<IEnumerable<T>> ProcessItemAddMessage(ItemAddMessage<T> message)
         {
-            AddItems(message.Items, null);
-            return TaskDone.Done;
+            var localItems = AddItems(message.Items, null);
+            return Task.FromResult((IEnumerable<T>) localItems);
         }
 
         public Task ProcessItemRemoveMessage(ItemRemoveMessage<T> message)
@@ -62,7 +63,7 @@ namespace Orleans.Collections.Observable
                     foreach (var item in arg.Items)
                     {
                         var updatedValue = MergeObjectIdentities(item, arg.IdentityLookup, true);
-                        ((IList)matchingCollection).Add(updatedValue);
+                        ((IList) matchingCollection).Add(updatedValue);
                     }
                     break;
                 case NotifyCollectionChangedAction.Remove:

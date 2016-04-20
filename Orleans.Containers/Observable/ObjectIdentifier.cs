@@ -5,10 +5,12 @@ namespace Orleans.Collections.Observable
     [Serializable]
     public class ObjectIdentifier
     {
-        public readonly long ObjectId;
+        public readonly long SequentialId;
+        public readonly Guid ObjectId;
 
-        public ObjectIdentifier(long objectId)
+        public ObjectIdentifier(long sequentialId, Guid objectId)
         {
+            SequentialId = sequentialId;
             ObjectId = objectId;
         }
 
@@ -24,13 +26,13 @@ namespace Orleans.Collections.Observable
         {
             unchecked
             {
-                return ObjectId.GetHashCode();
+                return (SequentialId.GetHashCode()*397) ^ ObjectId.GetHashCode();
             }
         }
 
         protected bool Equals(ObjectIdentifier other)
         {
-            return ObjectId.Equals(other.ObjectId);
+            return SequentialId.Equals(other.SequentialId) && ObjectId.Equals(other.ObjectId);
         }
     }
 }
