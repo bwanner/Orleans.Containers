@@ -31,10 +31,10 @@ namespace Orleans.Collections.Observable
         }
 
 
-        public Task<IEnumerable<T>> ProcessItemAddMessage<T>(ObservableItemAddMessage<T> message)
+        public Task<List<T>> ProcessItemAddMessage<T>(ObservableItemAddMessage<T> message)
         {
             var localItems = AddItems<T>(message.Items, message.Identities);
-            return Task.FromResult((IEnumerable<T>) localItems);
+            return Task.FromResult(localItems.ToList());
         }
 
         public Task<IEnumerable<T>> ProcessItemAddMessage<T>(ItemAddMessage<T> message)
@@ -83,12 +83,12 @@ namespace Orleans.Collections.Observable
         }
 
 
-        protected object AddObjectToLocalScope(object root, ObjectIdentityLookup identityLookup = null)
+        protected object AddObjectToLocalScope(object root, ObjectIdentityLookup identityLookup = null, bool rootIsNotifyCollectionChanged = false)
         {
             if (root == null)
                 return root;
 
-            if (SupportsPropertyChanged(root.GetType()))
+            if (rootIsNotifyCollectionChanged || SupportsPropertyChanged(root.GetType()))
             {
                 var rootIdentity = identityLookup?.LookupDictionary[root];
                 if (IsKnownObject(rootIdentity))
@@ -98,12 +98,19 @@ namespace Orleans.Collections.Observable
                 }
                 else
                 {
-                    ObjectReferences.AddNewItem((IContainerElementNotifyPropertyChanged)root, rootIdentity);
-                    // Continue with investigation, do not return
+                    ObjectReferences.AddNewItem(root, rootIdentity);
+                    if (rootIsNotifyCollectionChanged)
+                    {
+                        foreach (var item in (IList) root)
+                        {
+                            AddObjectToLocalScope(item, identityLookup);
+                        }
+                    }
                 }
+                    // Continue with investigation, do not return
             }
 
-            foreach (var p in GetDirectPropertyChangedTypes(root))
+            foreach (var p in GetDirectPropertyChangedTypes(root).Concat(GetDirectCollectionChangedTypes(root)))
             {
                 var propertyValue = p.GetValue(root);
                 var propertyIdentity = identityLookup?.LookupDictionary[propertyValue];
@@ -116,28 +123,7 @@ namespace Orleans.Collections.Observable
                 }
                 else
                 {
-                    ObjectReferences.AddNewItem(propertyValue, propertyIdentity);
-                    AddObjectToLocalScope(propertyValue, identityLookup);
-                }
-            }
-
-            foreach (var l in GetDirectCollectionChangedTypes(root))
-            {
-                var propertyValue = (INotifyCollectionChanged)l.GetValue(root);
-                var propertyIdentity = identityLookup?.LookupDictionary[propertyValue];
-                if (ObjectReferences.ObjectKnown(propertyIdentity))
-                {
-                    var localValue = ObjectReferences[propertyIdentity];
-                    ObjectReferences.IncreaseReferenceCounter(localValue);
-                    l.SetValue(root, localValue);
-                }
-                else
-                {
-                    ObjectReferences.AddNewItem(propertyValue, propertyIdentity);
-                    foreach (var includedItem in ((IList)propertyValue))
-                    {
-                        AddObjectToLocalScope(includedItem, identityLookup);
-                    }
+                    AddObjectToLocalScope(propertyValue, identityLookup, propertyValue is INotifyCollectionChanged);
                 }
             }
 
@@ -150,7 +136,8 @@ namespace Orleans.Collections.Observable
                 return;
             if (SupportsPropertyChanged(root.GetType()))
             {
-                ObjectReferences.DecreaseReferenceCounter((IContainerElementNotifyPropertyChanged)root);
+                if(!ObjectReferences.DecreaseReferenceCounter((IContainerElementNotifyPropertyChanged)root))
+                    return;
             }
 
 
@@ -162,8 +149,7 @@ namespace Orleans.Collections.Observable
             {
                 var propertyValue = (IContainerElementNotifyPropertyChanged)p.GetValue(root);
 
-                if (ObjectReferences.DecreaseReferenceCounter(propertyValue))
-                    RemoveObjects(propertyValue);
+                RemoveObjects(propertyValue);
             }
 
             // Properties annotated with ContainerNotifyCollectionChangedAttribute and implementing IList

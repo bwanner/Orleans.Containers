@@ -20,9 +20,9 @@ namespace Orleans.Collections.Observable
             ObjectReferences = new ObjectReferenceCounter();
         }
 
-        public abstract object AddItem(object obj, ObjectIdentityLookup incomingIdentities);
+        public abstract object AddItem(object obj, ObjectIdentityLookup incomingIdentities = null);
 
-        public IEnumerable<T> AddItems<T>(IEnumerable items, ObjectIdentityLookup incomingIdentities)
+        public IEnumerable<T> AddItems<T>(IEnumerable items, ObjectIdentityLookup incomingIdentities = null)
         {
             return (from object item in items select (T) AddItem(item, incomingIdentities)).ToList();
         }

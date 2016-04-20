@@ -108,6 +108,7 @@
     <Compile Include="ObservableContainerGrainNodeUnitTest.cs" />
     <Compile Include="ObservableContainerGrainUnitTest.cs" />
     <Compile Include="ContainerGrainUnitTest.cs" />
+    <Compile Include="OutgoingChangeProcessorTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
