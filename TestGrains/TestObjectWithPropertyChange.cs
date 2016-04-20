@@ -1,15 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using Orleans.CodeGeneration;
+using Orleans.Collections.ObjectState;
 using Orleans.Collections.Observable;
 using Orleans.Serialization;
 
 namespace TestGrains
 {
     [Serializable]
-    public class TestObjectWithPropertyChange : DummyInt, IContainerElementNotifyPropertyChanged, INotifyPropertyChanged
+    public class TestObjectWithPropertyChange : DummyInt, IContainerElementNotifyPropertyChanged
     {
         private int _value;
 
@@ -20,38 +23,48 @@ namespace TestGrains
             {
                 _value = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Value"));
-                ContainerPropertyChanged?.Invoke(new ContainerElementPropertyChangedEventArgs("Value", _value, Identifier));
+                //ContainerPropertyChanged?.Invoke(new ContainerElementPropertyChangedEventArgs("Value", _value, Identifier));
             }
         }
 
         public TestObjectWithPropertyChange(int value) : base(value)
         {
-            Identifier = new ObjectIdentifier(Guid.Empty, Guid.NewGuid());
         }
 
-        public void ApplyChange(ContainerElementPropertyChangedEventArgs change)
+        [field: NonSerialized]
+        public event PropertyChangedEventHandler PropertyChanged;
+    }
+
+    public class TestObjectWithPropertyChangeRecursive : IContainerElementNotifyPropertyChanged
+    {
+        private TestObjectWithPropertyChange _innerItem;
+
+        public TestObjectWithPropertyChange InnerItem
         {
-            switch (change.PropertyName)
+            get { return _innerItem; }
+            set
             {
-                case "Value":
-                    Value = (int) change.Value;
-                    break;
+                _innerItem = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("InnerItem"));
             }
         }
 
-        public ObjectIdentifier Identifier { get; private set; }
-        [field: NonSerialized]
-        public event ContainerElementPropertyChangedEventHandler ContainerPropertyChanged;
-        [field: NonSerialized]
+        public event PropertyChangedEventHandler PropertyChanged;
+    }
+
+    [Serializable]
+    public class TestObjectListWithPropertyChange : IContainerElementNotifyPropertyChanged
+    {
         public event PropertyChangedEventHandler PropertyChanged;
 
-        [CopierMethod]
-        private static object Copy(object input)
+        [property: ContainerNotifyCollectionChanged]
+        public ObservableCollection<TestObjectWithPropertyChange> NotifyCollectionSupportingList { get; private set; }
+        public ObservableCollection<TestObjectWithPropertyChange> SimpleList { get; private set; }
+
+        public TestObjectListWithPropertyChange()
         {
-            TestObjectWithPropertyChange o = (TestObjectWithPropertyChange) input;
-            return new TestObjectWithPropertyChange(o._value) {Identifier = o.Identifier};
+            NotifyCollectionSupportingList = new ObservableCollection<TestObjectWithPropertyChange>();
+            SimpleList = new ObservableCollection<TestObjectWithPropertyChange>();
         }
-
-
     }
 }

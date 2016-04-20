@@ -12,14 +12,14 @@ namespace Orleans.Collections.Observable
 {
     public class ObservableContainerNodeGrain<T> : ContainerNodeGrain<T>, IObservableContainerNodeGrain<T>
     {
-        private DistributedPropertyChangedProcessor<T> _propertyChangedProcessor;
+        private IncomingChangeProcessor<T> _propertyChangedProcessor;
 
         public override async Task OnActivateAsync()
         {
             await base.OnActivateAsync();
-            _propertyChangedProcessor = new DistributedPropertyChangedProcessor<T>();
-            _propertyChangedProcessor.ContainerPropertyChanged +=
-                change => OutputProducer.EnqueueMessage(new ItemPropertyChangedMessage(change)); 
+            _propertyChangedProcessor = new IncomingChangeProcessor<T>();
+            // TODO re add with outgoing processor _propertyChangedProcessor.ContainerPropertyChanged +=
+                //change => OutputProducer.EnqueueMessage(new ItemPropertyChangedMessage(change)); 
 
             StreamMessageDispatchReceiver.Register<ItemAddMessage<T>>(_propertyChangedProcessor.ProcessItemAddMessage);
             StreamMessageDispatchReceiver.Register<ItemRemoveMessage<T>>(_propertyChangedProcessor.ProcessItemRemoveMessage);
@@ -29,7 +29,7 @@ namespace Orleans.Collections.Observable
         public override async Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
             var elementReferences = await base.AddRange(items);
-            _propertyChangedProcessor.AddItems(items);
+            _propertyChangedProcessor.AddItems(items, null);
             var containerElements = elementReferences.Select(r => Elements[r]).ToList();
 
             await OutputProducer.SendAddItems(containerElements);

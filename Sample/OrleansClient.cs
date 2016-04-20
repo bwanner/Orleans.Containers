@@ -42,7 +42,8 @@ namespace CollectionHost
             int numContainers = 4;
             await collection.SetNumberOfNodes(numContainers);
 
-            var query = await collection.Select(x => x.Item.Value, GrainClient.GrainFactory).Where(x => x > 500);
+            var aggregateFactory = new DefaultStreamProcessorAggregateFactory(GrainClient.GrainFactory);
+            var query = await collection.Select(x => x.Item.Value, aggregateFactory).Where(x => x > 500);
 
             var matchingItemConsumer = new MultiStreamListConsumer<int>(provider);
             await matchingItemConsumer.SetInput(await query.GetStreamIdentities());
@@ -60,7 +61,7 @@ namespace CollectionHost
 
             var simpleProvider = new MultiStreamProvider<int>(provider, numberOutputStreams: 10);
 
-            var queryNumbersLessThan1000 = await simpleProvider.Where(x => x < 1000, GrainClient.GrainFactory);
+            var queryNumbersLessThan1000 = await simpleProvider.Where(x => x < 1000, aggregateFactory);
             
             var simpleResultConsumer = new MultiStreamListConsumer<int>(provider);
             await simpleResultConsumer.SetInput(await queryNumbersLessThan1000.GetStreamIdentities());
