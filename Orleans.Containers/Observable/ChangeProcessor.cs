@@ -9,39 +9,25 @@ using Orleans.Collections.ObjectState;
 
 namespace Orleans.Collections.Observable
 {
-    public abstract class ChangeProcessor<T>
+    public abstract class ChangeProcessor
     {
-        protected readonly ObjectReferenceCounter<INotifyCollectionChanged> CollectionChangedReferences;
-        protected readonly ObjectReferenceCounter<IContainerElementNotifyPropertyChanged> PropertyChangedReferences;
+        protected readonly ObjectReferenceCounter ObjectReferences;
 
-        public int KnownObjectCount => CollectionChangedReferences.Count + PropertyChangedReferences.Count;
+        public int KnownObjectCount => ObjectReferences.Count;
 
         internal ChangeProcessor()
         {
-            CollectionChangedReferences = new ObjectReferenceCounter<INotifyCollectionChanged>();
-            PropertyChangedReferences = new ObjectReferenceCounter<IContainerElementNotifyPropertyChanged>();
+            ObjectReferences = new ObjectReferenceCounter();
         }
 
-        public object AddItem(object obj, ObjectIdentityLookup incomingIdentities)
+        public abstract object AddItem(object obj, ObjectIdentityLookup incomingIdentities);
+
+        public IEnumerable<T> AddItems<T>(IEnumerable items, ObjectIdentityLookup incomingIdentities)
         {
-            // TODO Replace identifier duplicates
-            // TODO AddToKnownCollectionChangedObjects
-            // TODO AddToKnownPropertyChangedObjects
-            if (incomingIdentities == null)
-                return MergeObjectIdentities(obj, true);
-            else
-                return MergeObjectIdentities(obj, incomingIdentities, true);
+            return (from object item in items select (T) AddItem(item, incomingIdentities)).ToList();
         }
 
-        public IEnumerable AddItems(IEnumerable items, ObjectIdentityLookup incomingIdentities)
-        {
-            return (from object item in items select AddItem(item, incomingIdentities)).ToList();
-        }
-
-        public void RemoveItem(object obj)
-        {
-            RemoveObjects(obj, true);
-        }
+        public abstract void RemoveItem(object obj);
 
         public void RemoveItems(IEnumerable items)
         {
@@ -53,29 +39,7 @@ namespace Orleans.Collections.Observable
 
         public bool IsKnownObject(ObjectIdentifier identifier)
         {
-            return CollectionChangedReferences.ObjectKnown(identifier) || PropertyChangedReferences.ObjectKnown(identifier);
-        }
-
-
-        protected virtual void AddToKnownCollectionChangedObjects(INotifyCollectionChanged list)
-        {
-            CollectionChangedReferences.IncreaseReferenceCounter(list);
-        }
-
-        protected virtual void RemoveFromKnownCollectionChangedObjects(INotifyCollectionChanged collection)
-        {
-            CollectionChangedReferences.DecreaseReferenceCounter(collection);
-        }
-
-        protected virtual void AddToKnownPropertyChangedObjects(IContainerElementNotifyPropertyChanged target)
-        {
-            PropertyChangedReferences.IncreaseReferenceCounter(target);
-        }
-
-
-        protected virtual void RemoveFromKnownPropertyChangedObjects(IContainerElementNotifyPropertyChanged target)
-        {
-            PropertyChangedReferences.DecreaseReferenceCounter(target);
+            return ObjectReferences.ObjectKnown(identifier);
         }
 
         protected bool SupportsPropertyChanged(Type t)
@@ -83,154 +47,28 @@ namespace Orleans.Collections.Observable
             return t.GetInterfaces().Contains(typeof (IContainerElementNotifyPropertyChanged));
         }
 
-        protected object MergeObjectIdentities(object root, ObjectIdentityLookup identityLookup, bool inspectRoot = false)
+        /// <summary>
+        /// Get Properties implementing IContainerElementNotifyPropertyChanged
+        /// </summary>
+        /// <param name="root"></param>
+        /// <returns></returns>
+        protected IEnumerable<PropertyInfo> GetDirectPropertyChangedTypes(object root)
         {
-            if (root == null)
-                return root;
-
-            if (inspectRoot && SupportsPropertyChanged(root.GetType()))
-            {
-                var rootIdentity = identityLookup.LookupDictionary[root];
-                if (IsKnownObject(rootIdentity))
-                {
-                    PropertyChangedReferences.IncreaseReferenceCounter((IContainerElementNotifyPropertyChanged) root);
-                    return PropertyChangedReferences[rootIdentity];
-                }
-                else
-                {
-                    PropertyChangedReferences.AddNewItem((IContainerElementNotifyPropertyChanged) root, rootIdentity);
-                    // Continue with investigation, do not return
-                }
-            }
-
-
-            // Properties implementing IContainerElementNotifyPropertyChanged
-            var validProperties = root.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            return root.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public)
                 .Where(x => SupportsPropertyChanged(x.PropertyType) && x.GetIndexParameters().Length == 0);
-
-            foreach (var p in validProperties)
-            {
-                var propertyValue = (IContainerElementNotifyPropertyChanged) p.GetValue(root);
-                var propertyIdentity = identityLookup.LookupDictionary[propertyValue];
-
-                if (PropertyChangedReferences.ObjectKnown(propertyIdentity))
-                {
-                    var localValue = (IContainerElementNotifyPropertyChanged) PropertyChangedReferences[propertyIdentity];
-                    PropertyChangedReferences.IncreaseReferenceCounter(localValue);
-                    p.SetValue(root, localValue);
-                }
-                else
-                {
-                    PropertyChangedReferences.AddNewItem(propertyValue, propertyIdentity);
-                    MergeObjectIdentities(propertyValue, identityLookup);
-                }
-            }
-
-            // Properties annotated with ContainerNotifyCollectionChangedAttribute and implementing IList
-            var listProperties =
-                root.GetType()
-                    .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                    .Where(x => x.GetCustomAttribute<ContainerNotifyCollectionChangedAttribute>() != null && x.GetIndexParameters().Length == 0);
-
-            foreach (var l in listProperties)
-            {
-                var propertyValue = (INotifyCollectionChanged) l.GetValue(root);
-                var propertyIdentity = identityLookup.LookupDictionary[propertyValue];
-                if (CollectionChangedReferences.ObjectKnown(propertyIdentity))
-                {
-                    var localValue = (INotifyCollectionChanged) CollectionChangedReferences[propertyIdentity];
-                    CollectionChangedReferences.IncreaseReferenceCounter(localValue);
-                    l.SetValue(root, localValue);
-                }
-                else
-                {
-                    CollectionChangedReferences.AddNewItem(propertyValue, propertyIdentity);
-                    foreach (var includedItem in ((IList) propertyValue))
-                    {
-                        MergeObjectIdentities(includedItem, identityLookup, true);
-                    }
-                }
-            }
-
-            return root;
         }
 
-        protected object MergeObjectIdentities(object root, bool inspectRoot = false)
+
+        /// <summary>
+        /// Get properties annotated with ContainerNotifyCollectionChangedAttribute and implementing IList
+        /// </summary>
+        /// <param name="root"></param>
+        /// <returns></returns>
+        protected IEnumerable<PropertyInfo> GetDirectCollectionChangedTypes(object root)
         {
-            if (inspectRoot && SupportsPropertyChanged(root.GetType()))
-            {
-                PropertyChangedReferences.IncreaseReferenceCounter((IContainerElementNotifyPropertyChanged) root);
-            }
-
-
-            // Properties implementing IContainerElementNotifyPropertyChanged
-            var validProperties = root.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(x => SupportsPropertyChanged(x.PropertyType) && x.GetIndexParameters().Length == 0);
-
-            foreach (var p in validProperties)
-            {
-                var propertyValue = (IContainerElementNotifyPropertyChanged) p.GetValue(root);
-
-                PropertyChangedReferences.AddNewItem(propertyValue);
-                MergeObjectIdentities(propertyValue);
-            }
-
-            // Properties annotated with ContainerNotifyCollectionChangedAttribute and implementing IList
-            var listProperties =
-                root.GetType()
-                    .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                    .Where(x => x.GetCustomAttribute<ContainerNotifyCollectionChangedAttribute>() != null && x.GetIndexParameters().Length == 0);
-
-            foreach (var l in listProperties)
-            {
-                var propertyValue = (INotifyCollectionChanged) l.GetValue(root);
-
-                CollectionChangedReferences.AddNewItem(propertyValue);
-                foreach (var includedItem in ((IList) propertyValue))
-                {
-                    MergeObjectIdentities(includedItem, true);
-                }
-            }
-
-            return root;
+            return root.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(x => x.GetCustomAttribute<ContainerNotifyCollectionChangedAttribute>() != null && x.GetIndexParameters().Length == 0);
         }
 
-        protected void RemoveObjects(object root, bool inspectRoot = false)
-        {
-            if (root == null)
-                return;
-            if (inspectRoot && SupportsPropertyChanged(root.GetType()))
-            {
-                PropertyChangedReferences.DecreaseReferenceCounter((IContainerElementNotifyPropertyChanged) root);
-            }
-
-
-            // Properties implementing IContainerElementNotifyPropertyChanged
-            var validProperties = root.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(x => SupportsPropertyChanged(x.PropertyType) && x.GetIndexParameters().Length == 0);
-
-            foreach (var p in validProperties)
-            {
-                var propertyValue = (IContainerElementNotifyPropertyChanged) p.GetValue(root);
-                PropertyChangedReferences.DecreaseReferenceCounter(propertyValue);
-                RemoveObjects(propertyValue);
-            }
-
-            // Properties annotated with ContainerNotifyCollectionChangedAttribute and implementing IList
-            var listProperties =
-                root.GetType()
-                    .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                    .Where(x => x.GetCustomAttribute<ContainerNotifyCollectionChangedAttribute>() != null && x.GetIndexParameters().Length == 0);
-
-            foreach (var l in listProperties)
-            {
-                var propertyValue = (INotifyCollectionChanged) l.GetValue(root);
-                CollectionChangedReferences.DecreaseReferenceCounter(propertyValue);
-                foreach (var includedItem in ((IList)propertyValue))
-                {
-                    MergeObjectIdentities(includedItem, true);
-                }
-            }
-        }
     }
 }

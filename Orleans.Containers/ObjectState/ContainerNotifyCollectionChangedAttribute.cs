@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using Orleans.Collections.Observable;
 
 namespace Orleans.Collections.ObjectState
 {
@@ -13,4 +14,6 @@ namespace Orleans.Collections.ObjectState
             PropertyName = propertyName;
         }
     }
+
+    public delegate EventHandler<ContainerElementCollectionChangedEventArgs> ContainerElementCollectionChangedEventHandler();
 }

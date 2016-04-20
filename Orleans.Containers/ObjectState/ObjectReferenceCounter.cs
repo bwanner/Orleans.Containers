@@ -4,20 +4,20 @@ using Orleans.Collections.Observable;
 
 namespace Orleans.Collections.ObjectState
 {
-    public class ObjectReferenceCounter<T>
+    public class ObjectReferenceCounter
     {
-        private readonly Dictionary<ObjectIdentifier, TaggedValue<T>> _knownObjects = new Dictionary<ObjectIdentifier, TaggedValue<T>>();
+        private readonly Dictionary<ObjectIdentifier, TaggedValue<object>> _knownObjects = new Dictionary<ObjectIdentifier, TaggedValue<object>>();
 
-        public T this[ObjectIdentifier identifier] => _knownObjects[identifier].Value;
+        public object this[ObjectIdentifier identifier] => _knownObjects[identifier].Value;
 
         public int Count => _knownObjects.Count;
 
-        public event EventHandler<T> OnObjectAdded;
-        public event EventHandler<T> OnObjectRemoved;
+        public event EventHandler<object> OnObjectAdded;
+        public event EventHandler<object> OnObjectRemoved;
 
         public bool ObjectKnown(ObjectIdentifier identifier)
         {
-            return _knownObjects.ContainsKey(identifier);
+            return identifier != null && _knownObjects.ContainsKey(identifier);
         }
 
         /// <summary>
@@ -25,7 +25,7 @@ namespace Orleans.Collections.ObjectState
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public void IncreaseReferenceCounter(T obj)
+        public void IncreaseReferenceCounter(object obj)
         {
             var objectId = ObjectIdentityGenerator.Instance.GetId(obj);
             if (ObjectKnown(objectId))
@@ -33,11 +33,11 @@ namespace Orleans.Collections.ObjectState
                 _knownObjects[objectId].Tag += 1;
             }
 
-            _knownObjects[objectId] = new TaggedValue<T>(1, obj);
+            _knownObjects[objectId] = new TaggedValue<object>(1, obj);
             OnObjectAdded?.Invoke(this, obj);
         }
 
-        public void AddNewItem(T obj, ObjectIdentifier identifier = null)
+        public void AddNewItem(object obj, ObjectIdentifier identifier = null)
         {
             if (identifier != null)
             {
@@ -46,7 +46,7 @@ namespace Orleans.Collections.ObjectState
             IncreaseReferenceCounter(obj);
         }
 
-        public void DecreaseReferenceCounter(T obj)
+        public bool DecreaseReferenceCounter(object obj)
         {
             var objectId = ObjectIdentityGenerator.Instance.GetId(obj);
             var newValue = _knownObjects[objectId].Tag - 1;
@@ -57,7 +57,10 @@ namespace Orleans.Collections.ObjectState
                 var item = _knownObjects[objectId].Value;
                 _knownObjects.Remove(objectId);
                 OnObjectRemoved?.Invoke(this, item);
+                return true;
             }
+
+            return false;
         }
     }
 

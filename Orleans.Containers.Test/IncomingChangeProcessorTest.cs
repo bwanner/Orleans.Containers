@@ -19,7 +19,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestAttributeMissingNotAdded()
         {
-            var l = new IncomingChangeProcessor<DummyInt>();
+            var l = new IncomingChangeProcessor();
             await l.ProcessItemAddMessage(new ItemAddMessage<DummyInt>(Enumerable.Range(0, 100).Select(x => new DummyInt(x)).ToList()));
 
             Assert.AreEqual(0, l.KnownObjectCount);
@@ -28,7 +28,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestItemPropertyChangeApplied()
         {
-            var l = new IncomingChangeProcessor<TestObjectWithPropertyChange>();
+            var l = new IncomingChangeProcessor();
             var o = new TestObjectWithPropertyChange(42);
             await l.ProcessItemAddMessage(new ItemAddMessage<TestObjectWithPropertyChange>(new List<TestObjectWithPropertyChange> {o}));
 
@@ -45,7 +45,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestItemIdentityLookup()
         {
-            var l = new IncomingChangeProcessor<TestObjectWithPropertyChange>();
+            var l = new IncomingChangeProcessor();
             var o = new TestObjectWithPropertyChange(42);
             var objectIdentifier = new ObjectIdentifier(123, Guid.NewGuid());
 
@@ -66,7 +66,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestOneLevelAddedToKnownObject()
         {
-            var l = new IncomingChangeProcessor<TestObjectWithPropertyChange>();
+            var l = new IncomingChangeProcessor();
             var o = new TestObjectWithPropertyChange(42);
             await l.ProcessItemAddMessage(new ItemAddMessage<TestObjectWithPropertyChange>(new List<TestObjectWithPropertyChange> {o}));
 
@@ -77,7 +77,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestRecursivePropertyChanged()
         {
-            var l = new IncomingChangeProcessor<TestObjectWithPropertyChangeRecursive>();
+            var l = new IncomingChangeProcessor();
 
             var outer = new TestObjectWithPropertyChangeRecursive();
             var inner = new TestObjectWithPropertyChange(42);
@@ -120,7 +120,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestTwoLevelAddAndRemove()
         {
-            var l = new IncomingChangeProcessor<List<TestObjectWithPropertyChange>>();
+            var l = new IncomingChangeProcessor();
             var objectList1 = Enumerable.Range(0, 100).Select(i => new TestObjectWithPropertyChange(i)).ToList();
             var objectList2 = Enumerable.Range(0, 100).Select(i => new TestObjectWithPropertyChange(i)).ToList();
             await
@@ -157,7 +157,7 @@ namespace Orleans.Collections.Test
         [TestMethod]
         public async Task TestRecursiveCollectionChanged()
         {
-            var l = new IncomingChangeProcessor<TestObjectListWithPropertyChange>();
+            var l = new IncomingChangeProcessor();
             var root = new TestObjectListWithPropertyChange();
             var o1 = new TestObjectWithPropertyChange(42);
             root.NotifyCollectionSupportingList.Add(o1);

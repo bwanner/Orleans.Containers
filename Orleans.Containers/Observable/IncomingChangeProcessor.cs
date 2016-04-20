@@ -17,33 +17,33 @@ namespace Orleans.Collections.Observable
     ///     - IList and INotifyCollectionChanged implementing objects (e.g. ObservableCollection) marked with ContainerNotifyCollectionChangedAttribute.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class IncomingChangeProcessor<T> : ChangeProcessor<T>
+    public class IncomingChangeProcessor : ChangeProcessor
     {
         public Task ProcessItemPropertyChangedMessage(ItemPropertyChangedMessage arg)
         {
-            var matchingObject = PropertyChangedReferences[arg.ChangedEventArgs.Identifier];
-            var updatedValue = MergeObjectIdentities(arg.ChangedEventArgs.Value, arg.ChangedEventArgs.IdentityLookup, true);
+            var matchingObject = (IContainerElementNotifyPropertyChanged) ObjectReferences[arg.ChangedEventArgs.Identifier];
+            var updatedValue = AddObjectToLocalScope(arg.ChangedEventArgs.Value, arg.ChangedEventArgs.IdentityLookup);
 
             var oldValue = matchingObject.ApplyChange(arg.ChangedEventArgs.PropertyName, updatedValue);
-            RemoveObjects(oldValue, true);
+            RemoveObjects(oldValue);
 
             return TaskDone.Done;
         }
 
 
-        public Task<IEnumerable<T>> ProcessItemAddMessage(ObservableItemAddMessage<T> message)
+        public Task<IEnumerable<T>> ProcessItemAddMessage<T>(ObservableItemAddMessage<T> message)
         {
-            var localItems = AddItems(message.Items, message.Identities);
+            var localItems = AddItems<T>(message.Items, message.Identities);
             return Task.FromResult((IEnumerable<T>) localItems);
         }
 
-        public Task<IEnumerable<T>> ProcessItemAddMessage(ItemAddMessage<T> message)
+        public Task<IEnumerable<T>> ProcessItemAddMessage<T>(ItemAddMessage<T> message)
         {
-            var localItems = AddItems(message.Items, null);
+            var localItems = AddItems<T>(message.Items, null);
             return Task.FromResult((IEnumerable<T>) localItems);
         }
 
-        public Task ProcessItemRemoveMessage(ItemRemoveMessage<T> message)
+        public Task ProcessItemRemoveMessage<T>(ItemRemoveMessage<T> message)
         {
             foreach (var item in message.Items)
             {
@@ -56,13 +56,13 @@ namespace Orleans.Collections.Observable
         public Task ProcessItemCollectionChangedMessage(ItemCollectionChangedMessage message)
         {
             var arg = message.ChangedEventArgs;
-            var matchingCollection = CollectionChangedReferences[message.ChangedEventArgs.Identifier];
+            var matchingCollection = ObjectReferences[message.ChangedEventArgs.Identifier];
             switch (arg.Action)
             {
                 case NotifyCollectionChangedAction.Add:
                     foreach (var item in arg.Items)
                     {
-                        var updatedValue = MergeObjectIdentities(item, arg.IdentityLookup, true);
+                        var updatedValue = AddObjectToLocalScope(item, arg.IdentityLookup);
                         ((IList) matchingCollection).Add(updatedValue);
                     }
                     break;
@@ -80,6 +80,120 @@ namespace Orleans.Collections.Observable
             }
 
             return TaskDone.Done;
+        }
+
+
+        protected object AddObjectToLocalScope(object root, ObjectIdentityLookup identityLookup = null)
+        {
+            if (root == null)
+                return root;
+
+            if (SupportsPropertyChanged(root.GetType()))
+            {
+                var rootIdentity = identityLookup?.LookupDictionary[root];
+                if (IsKnownObject(rootIdentity))
+                {
+                    ObjectReferences.IncreaseReferenceCounter(root);
+                    return ObjectReferences[rootIdentity];
+                }
+                else
+                {
+                    ObjectReferences.AddNewItem((IContainerElementNotifyPropertyChanged)root, rootIdentity);
+                    // Continue with investigation, do not return
+                }
+            }
+
+            foreach (var p in GetDirectPropertyChangedTypes(root))
+            {
+                var propertyValue = p.GetValue(root);
+                var propertyIdentity = identityLookup?.LookupDictionary[propertyValue];
+
+                if (ObjectReferences.ObjectKnown(propertyIdentity))
+                {
+                    var localValue = ObjectReferences[propertyIdentity];
+                    ObjectReferences.IncreaseReferenceCounter(localValue);
+                    p.SetValue(root, localValue);
+                }
+                else
+                {
+                    ObjectReferences.AddNewItem(propertyValue, propertyIdentity);
+                    AddObjectToLocalScope(propertyValue, identityLookup);
+                }
+            }
+
+            foreach (var l in GetDirectCollectionChangedTypes(root))
+            {
+                var propertyValue = (INotifyCollectionChanged)l.GetValue(root);
+                var propertyIdentity = identityLookup?.LookupDictionary[propertyValue];
+                if (ObjectReferences.ObjectKnown(propertyIdentity))
+                {
+                    var localValue = ObjectReferences[propertyIdentity];
+                    ObjectReferences.IncreaseReferenceCounter(localValue);
+                    l.SetValue(root, localValue);
+                }
+                else
+                {
+                    ObjectReferences.AddNewItem(propertyValue, propertyIdentity);
+                    foreach (var includedItem in ((IList)propertyValue))
+                    {
+                        AddObjectToLocalScope(includedItem, identityLookup);
+                    }
+                }
+            }
+
+            return root;
+        }
+
+        protected void RemoveObjects(object root)
+        {
+            if (root == null)
+                return;
+            if (SupportsPropertyChanged(root.GetType()))
+            {
+                ObjectReferences.DecreaseReferenceCounter((IContainerElementNotifyPropertyChanged)root);
+            }
+
+
+            // Properties implementing IContainerElementNotifyPropertyChanged
+            var validProperties = root.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(x => SupportsPropertyChanged(x.PropertyType) && x.GetIndexParameters().Length == 0);
+
+            foreach (var p in validProperties)
+            {
+                var propertyValue = (IContainerElementNotifyPropertyChanged)p.GetValue(root);
+
+                if (ObjectReferences.DecreaseReferenceCounter(propertyValue))
+                    RemoveObjects(propertyValue);
+            }
+
+            // Properties annotated with ContainerNotifyCollectionChangedAttribute and implementing IList
+            var listProperties =
+                root.GetType()
+                    .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                    .Where(x => x.GetCustomAttribute<ContainerNotifyCollectionChangedAttribute>() != null && x.GetIndexParameters().Length == 0);
+
+            foreach (var l in listProperties)
+            {
+                var propertyValue = (INotifyCollectionChanged)l.GetValue(root);
+                ObjectReferences.DecreaseReferenceCounter(propertyValue);
+                foreach (var includedItem in ((IList)propertyValue))
+                {
+                    RemoveObjects(includedItem);
+                }
+            }
+        }
+
+        public override object AddItem(object obj, ObjectIdentityLookup incomingIdentities)
+        {
+            // TODO Replace identifier duplicates
+            // TODO AddToKnownCollectionChangedObjects
+            // TODO AddToKnownPropertyChangedObjects
+            return AddObjectToLocalScope(obj, incomingIdentities);
+        }
+
+        public override void RemoveItem(object obj)
+        {
+            RemoveObjects(obj);
         }
     }
 }

@@ -5,42 +5,21 @@ using Orleans.Collections.ObjectState;
 
 namespace Orleans.Collections.Observable
 {
-    public class OutgoingChangeProcessor
+    public class OutgoingChangeProcessor : ChangeProcessor
     {
         public event ContainerElementPropertyChangedEventHandler ContainerPropertyChanged;
 
-        //public event ContainerElementCollectionChangedEventHandler ContainerCollectionChanged;
+        public event ContainerElementCollectionChangedEventHandler ContainerCollectionChanged;
 
 
-
-
-
-
-        private void Target_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        public override object AddItem(object obj, ObjectIdentityLookup incomingIdentities)
         {
-            var objectId = ObjectIdentityGenerator.Instance.GetId(sender);
-            var getMethod = sender.GetType().GetProperty(e.PropertyName).GetGetMethod();
-            //ContainerPropertyChanged?.Invoke(new ContainerElementPropertyChangedEventArgs(e.PropertyName, getMethod.Invoke(sender, null), objectId));
+            throw new NotImplementedException();
         }
 
-
-        private void List_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        public override void RemoveItem(object obj)
         {
-            switch (e.Action)
-            {
-                case NotifyCollectionChangedAction.Add:
-
-                    break;
-                case NotifyCollectionChangedAction.Remove:
-
-                    break;
-
-                case NotifyCollectionChangedAction.Reset:
-
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+            throw new NotImplementedException();
         }
     }
 }
