@@ -31,12 +31,12 @@ namespace Orleans.Streams.Endpoints
 
         public async Task StartTransaction(Guid transactionId)
         {
-            await Sender.SendMessage(new TransactionMessage {State = TransactionState.Start, TransactionId = transactionId});
+            await Sender.StartTransaction(transactionId);
         }
 
         public async Task EndTransaction(Guid transactionId)
         {
-            await Sender.SendMessage(new TransactionMessage {State = TransactionState.End, TransactionId = transactionId});
+            await Sender.EndTransaction(transactionId);
         }
 
         public async Task SendAddItems(IEnumerable<T> items)

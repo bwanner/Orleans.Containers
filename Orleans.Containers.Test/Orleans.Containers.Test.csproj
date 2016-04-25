@@ -104,11 +104,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="ContainerGrainNodeUnitTest.cs" />
-    <Compile Include="IncomingChangeProcessorTest.cs" />
-    <Compile Include="ObservableContainerGrainNodeUnitTest.cs" />
-    <Compile Include="ObservableContainerGrainUnitTest.cs" />
     <Compile Include="ContainerGrainUnitTest.cs" />
-    <Compile Include="OutgoingChangeProcessorTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

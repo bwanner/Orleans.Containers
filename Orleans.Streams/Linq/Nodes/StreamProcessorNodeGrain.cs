@@ -66,10 +66,7 @@ namespace Orleans.Streams.Linq.Nodes
         protected virtual void RegisterMessages()
         {
             StreamMessageDispatchReceiver.Register<TransactionMessage>(ProcessTransactionMessage);
-            StreamMessageDispatchReceiver.Register<ItemAddMessage<TIn>>(ProcessItemAddMessage);
         }
-
-        protected abstract Task ProcessItemAddMessage(ItemAddMessage<TIn> itemMessage);
 
         protected async Task ProcessTransactionMessage(TransactionMessage transactionMessage)
         {

@@ -11,13 +11,24 @@ namespace Orleans.Streams.Linq.Nodes
     {
         private Func<TIn, TOut> _function;
 
+        public override Task OnActivateAsync()
+        {
+            return base.OnActivateAsync();
+        }
+
+        protected override void RegisterMessages()
+        {
+            base.RegisterMessages();
+            StreamMessageDispatchReceiver.Register<ItemAddMessage<TIn>>(ProcessItemAddMessage);
+        }
+
         public Task SetFunction(SerializableFunc<TIn, TOut> function)
         {
             _function = function.Value.Compile();
             return TaskDone.Done;
         }
 
-        protected override async Task ProcessItemAddMessage(ItemAddMessage<TIn> itemMessage)
+        protected async Task ProcessItemAddMessage(ItemAddMessage<TIn> itemMessage)
         {
             var result = itemMessage.Items.Select(_function).ToList();
             await StreamSender.SendItems(result);

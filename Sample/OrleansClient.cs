@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Orleans;
 using Orleans.Collections;
-using Orleans.Collections.Observable;
 using Orleans.Collections.Utilities;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;
@@ -38,7 +37,7 @@ namespace CollectionHost
 
 
             // Sample with observable collection and data query.
-            var collection = GrainClient.GrainFactory.GetGrain<IObservableContainerGrain<DummyInt>>(Guid.NewGuid());
+            var collection = GrainClient.GrainFactory.GetGrain<IContainerGrain<DummyInt>>(Guid.NewGuid());
             int numContainers = 4;
             await collection.SetNumberOfNodes(numContainers);
 

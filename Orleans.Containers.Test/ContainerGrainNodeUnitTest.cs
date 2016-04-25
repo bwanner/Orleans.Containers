@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using Orleans.Collections.Observable;
 using Orleans.Collections.Utilities;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;

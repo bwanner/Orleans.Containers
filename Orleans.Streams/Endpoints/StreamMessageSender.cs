@@ -9,9 +9,9 @@ namespace Orleans.Streams.Endpoints
     {
         public const string StreamNamespacePrefix = "StreamMessageSender";
         private readonly IAsyncStream<IStreamMessage> _messageStream;
-        private bool _tearDownExecuted;
         private readonly Queue<IStreamMessage> _queue;
         private readonly StreamIdentity _streamIdentity;
+        private bool _tearDownExecuted;
 
         public StreamMessageSender(IStreamProvider provider, Guid guid = default(Guid))
         {
@@ -30,10 +30,9 @@ namespace Orleans.Streams.Endpoints
             _queue = new Queue<IStreamMessage>();
         }
 
-        public async Task TearDown()
+        public Task<StreamIdentity> GetStreamIdentity()
         {
-            await _messageStream.OnCompletedAsync();
-            _tearDownExecuted = true;
+            return Task.FromResult(_streamIdentity);
         }
 
         public Task<bool> IsTearedDown()
@@ -41,9 +40,10 @@ namespace Orleans.Streams.Endpoints
             return Task.FromResult(_tearDownExecuted);
         }
 
-        public Task<StreamIdentity> GetStreamIdentity()
+        public async Task TearDown()
         {
-            return Task.FromResult(_streamIdentity);
+            await _messageStream.OnCompletedAsync();
+            _tearDownExecuted = true;
         }
 
         public void AddToMessageQueue(IStreamMessage message)
@@ -54,6 +54,16 @@ namespace Orleans.Streams.Endpoints
         public async Task SendMessage(IStreamMessage message)
         {
             await _messageStream.OnNextAsync(message);
+        }
+
+        public async Task StartTransaction(Guid transactionId)
+        {
+            await SendMessage(new TransactionMessage {State = TransactionState.Start, TransactionId = transactionId});
+        }
+
+        public async Task EndTransaction(Guid transactionId)
+        {
+            await SendMessage(new TransactionMessage {State = TransactionState.End, TransactionId = transactionId});
         }
 
         public async Task SendMessagesFromQueue()
