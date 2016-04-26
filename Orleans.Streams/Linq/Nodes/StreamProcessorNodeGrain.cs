@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Orleans.Collections.Messages;
 using Orleans.Streams.Endpoints;
@@ -14,9 +15,9 @@ namespace Orleans.Streams.Linq.Nodes
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
         protected StreamMessageSenderFacade<TOut> StreamSender;
 
-        public async Task SubscribeToStream(StreamIdentity inputStream)
+        public async Task SubscribeToStreams(IEnumerable<StreamIdentity> inputStream)
         {
-            await StreamMessageDispatchReceiver.Subscribe(inputStream);
+            await Task.WhenAll(inputStream.Select(s => StreamMessageDispatchReceiver.Subscribe(s)));
         }
 
         public Task TransactionComplete(Guid transactionId)
@@ -24,7 +25,7 @@ namespace Orleans.Streams.Linq.Nodes
             return _streamTransactionReceiver.TransactionComplete(transactionId);
         }
 
-        public async Task<IEnumerable<StreamIdentity>> GetOutputStreams()
+        public async Task<IList<StreamIdentity>> GetOutputStreams()
         {
             return new List<StreamIdentity> { await StreamSender.GetStreamIdentity() };
         }

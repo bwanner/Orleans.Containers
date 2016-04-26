@@ -69,7 +69,7 @@ namespace Orleans.Streams.Endpoints
             ;
         }
 
-        public async Task SetInput(IEnumerable<StreamIdentity> streamIdentities)
+        public async Task SetInput(IList<StreamIdentity> streamIdentities)
         {
             _tearDownExecuted = false;
             foreach (var identity in streamIdentities)

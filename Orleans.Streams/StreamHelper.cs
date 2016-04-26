@@ -54,17 +54,6 @@ namespace Orleans.Streams
         }
 
         /// <summary>
-        /// Wraps a single item into an IEnumerable.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="obj"></param>
-        /// <returns></returns>
-        public static IEnumerable<T> ToIEnumerable<T>(this T obj)
-        {
-            yield return obj;
-        }
-
-        /// <summary>
         /// Wraps a single item into a List.
         /// </summary>
         /// <typeparam name="T"></typeparam>

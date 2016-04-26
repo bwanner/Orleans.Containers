@@ -14,7 +14,7 @@ namespace Orleans.Streams
         /// </summary>
         /// <param name="streamIdentities">Information about streams to subscribe to.</param>
         /// <returns></returns>
-        Task SetInput(IEnumerable<StreamIdentity> streamIdentities);
+        Task SetInput(IList<StreamIdentity> streamIdentities);
 
         /// <summary>
         /// Wait for a transaction to be completed.

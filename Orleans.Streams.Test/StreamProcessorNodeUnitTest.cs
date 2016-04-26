@@ -37,7 +37,7 @@ namespace Orleans.Collections.Test
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
             var testProvider = new MultiStreamProvider<int>(provider, 1);
-            await processor.SubscribeToStream((await testProvider.GetStreamIdentities()).First());
+            await processor.SubscribeToStreams(await testProvider.GetStreamIdentities());
 
             var testConsumer = new MultiStreamListConsumer<int>(provider);
 
@@ -60,7 +60,7 @@ namespace Orleans.Collections.Test
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
             var testProvider = new MultiStreamProvider<int>(provider, 1);
-            await processor.SubscribeToStream((await testProvider.GetStreamIdentities()).First());
+            await processor.SubscribeToStreams(await testProvider.GetStreamIdentities());
 
             var testConsumer = new MultiStreamListConsumer<int>(provider);
             await SubscribeConsumer(processor, testConsumer);

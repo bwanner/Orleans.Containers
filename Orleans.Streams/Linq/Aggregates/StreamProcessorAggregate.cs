@@ -10,7 +10,7 @@ namespace Orleans.Streams.Linq.Aggregates
     {
         protected List<TNode> ProcessorNodes;
 
-        public async Task SetInput(IEnumerable<StreamIdentity> streamIdentities)
+        public async Task SetInput(IList<StreamIdentity> streamIdentities)
         {
             ProcessorNodes = new List<TNode>();
             foreach (var identity in streamIdentities)

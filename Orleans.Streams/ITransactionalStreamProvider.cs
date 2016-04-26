@@ -13,6 +13,6 @@ namespace Orleans.Streams
         /// Get identities of the provided output streams.
         /// </summary>
         /// <returns></returns>
-        Task<IEnumerable<StreamIdentity>> GetOutputStreams();
+        Task<IList<StreamIdentity>> GetOutputStreams();
     }
 }
