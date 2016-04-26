@@ -37,7 +37,7 @@ namespace Orleans.Collections.Test
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
             var testProvider = new MultiStreamProvider<int>(provider, 1);
-            await processor.SubscribeToStreams(await testProvider.GetStreamIdentities());
+            await processor.SubscribeToStreams(await testProvider.GetOutputStreams());
 
             var testConsumer = new MultiStreamListConsumer<int>(provider);
 
@@ -60,7 +60,7 @@ namespace Orleans.Collections.Test
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
             var testProvider = new MultiStreamProvider<int>(provider, 1);
-            await processor.SubscribeToStreams(await testProvider.GetStreamIdentities());
+            await processor.SubscribeToStreams(await testProvider.GetOutputStreams());
 
             var testConsumer = new MultiStreamListConsumer<int>(provider);
             await SubscribeConsumer(processor, testConsumer);
@@ -89,12 +89,12 @@ namespace Orleans.Collections.Test
             var provider = GrainClient.GetStreamProvider(StreamProvider);
             var inputAggregate = new MultiStreamProvider<int>(provider, 2);
 
-            await aggregate.SetInput(await inputAggregate.GetStreamIdentities());
+            await aggregate.SetInput(await inputAggregate.GetOutputStreams());
 
-            Assert.AreEqual(2, (await aggregate.GetStreamIdentities()).Count);
+            Assert.AreEqual(2, (await aggregate.GetOutputStreams()).Count);
 
             var consumerAggregate = new TestTransactionalStreamConsumerAggregate<int>(provider);
-            await consumerAggregate.SetInput(await aggregate.GetStreamIdentities());
+            await consumerAggregate.SetInput(await aggregate.GetOutputStreams());
 
             var tid = await inputAggregate.SendItems(itemsToSend);
             await consumerAggregate.TransactionComplete(tid);
@@ -125,13 +125,13 @@ namespace Orleans.Collections.Test
             var provider = GrainClient.GetStreamProvider(StreamProvider);
             var inputAggregate = new MultiStreamProvider<int>(provider, 2); ;
 
-            await aggregate.SetInput(await inputAggregate.GetStreamIdentities());
+            await aggregate.SetInput(await inputAggregate.GetOutputStreams());
 
-            var streamIdentitiesProcessor = await aggregate.GetStreamIdentities();
-            Assert.AreEqual(2, (await aggregate.GetStreamIdentities()).Count);
+            var streamIdentitiesProcessor = await aggregate.GetOutputStreams();
+            Assert.AreEqual(2, (await aggregate.GetOutputStreams()).Count);
 
             var consumerAggregate = new TestTransactionalStreamConsumerAggregate<int>(provider);
-            await consumerAggregate.SetInput(await aggregate.GetStreamIdentities());
+            await consumerAggregate.SetInput(await aggregate.GetOutputStreams());
 
             var subscriptionHdl1 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[0].StreamIdentifier);
             var subscriptionHdl2 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[1].StreamIdentifier);

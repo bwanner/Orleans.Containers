@@ -207,7 +207,7 @@ namespace Orleans.Collections
             await Task.WhenAll(_containers.Select(c => c.TransactionComplete(transactionId)));
         }
 
-        public async Task<IList<StreamIdentity>> GetStreamIdentities()
+        public async Task<IList<StreamIdentity>> GetOutputStreams()
         {
             var streamTasks = await Task.WhenAll(_containers.Select(c => c.GetOutputStreams()));
 

@@ -28,7 +28,7 @@ namespace CollectionHost
             await container.ExecuteSync((i) => { i.Value += 2; }); // Pass action to container
 
             var consumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(provider);
-            await consumer.SetInput(await container.GetStreamIdentities());
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var transactionId = await container.EnumerateToSubscribers();
             await consumer.TransactionComplete(transactionId);
@@ -45,10 +45,10 @@ namespace CollectionHost
             var query = await collection.Select(x => x.Item.Value, aggregateFactory).Where(x => x > 500);
 
             var matchingItemConsumer = new MultiStreamListConsumer<int>(provider);
-            await matchingItemConsumer.SetInput(await query.GetStreamIdentities());
+            await matchingItemConsumer.SetInput(await query.GetOutputStreams());
 
             var observedCollectionConsumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(provider);
-            await observedCollectionConsumer.SetInput(await collection.GetStreamIdentities());
+            await observedCollectionConsumer.SetInput(await collection.GetOutputStreams());
 
             var inputList = Enumerable.Range(0, 1000).Select(x => new DummyInt(x)).ToList();
             await collection.BatchAdd(inputList);
@@ -63,7 +63,7 @@ namespace CollectionHost
             var queryNumbersLessThan1000 = await simpleProvider.Where(x => x < 1000, aggregateFactory);
             
             var simpleResultConsumer = new MultiStreamListConsumer<int>(provider);
-            await simpleResultConsumer.SetInput(await queryNumbersLessThan1000.GetStreamIdentities());
+            await simpleResultConsumer.SetInput(await queryNumbersLessThan1000.GetOutputStreams());
 
             var rand = new Random(123);
             var transaction1 = await simpleProvider.SendItems(Enumerable.Repeat(2000, 10000).Select(x => rand.Next(x)).ToList());

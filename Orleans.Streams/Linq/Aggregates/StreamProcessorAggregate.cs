@@ -26,7 +26,7 @@ namespace Orleans.Streams.Linq.Aggregates
             await Task.WhenAll(ProcessorNodes.Select(p => p.TransactionComplete(transactionId)));
         }
 
-        public async Task<IList<StreamIdentity>> GetStreamIdentities()
+        public async Task<IList<StreamIdentity>> GetOutputStreams()
         {
             var result = await Task.WhenAll(ProcessorNodes.Select(n => n.GetOutputStreams()));
 

@@ -5,9 +5,9 @@ namespace Orleans.Streams.Linq
 {
     public class StreamProcessorChainStart<TIn, TOut, TFactory> : StreamProcessorChain<TIn, TOut, TFactory> where TFactory : IStreamProcessorAggregateFactory
     {
-        private readonly ITransactionalStreamProviderAggregate<TIn> _source;
+        private readonly ITransactionalStreamProvider<TIn> _source;
 
-        public StreamProcessorChainStart(IStreamProcessorAggregate<TIn, TOut> aggregate, ITransactionalStreamProviderAggregate<TIn> source, TFactory factory) : base(aggregate, factory)
+        public StreamProcessorChainStart(IStreamProcessorAggregate<TIn, TOut> aggregate, ITransactionalStreamProvider<TIn> source, TFactory factory) : base(aggregate, factory)
         {
             _source = source;
         }
@@ -42,9 +42,9 @@ namespace Orleans.Streams.Linq
             _previous = previous;
         }
 
-        public async Task<IList<StreamIdentity>> GetStreamIdentities()
+        public async Task<IList<StreamIdentity>> GetOutputStreams()
         {
-            return await Aggregate.GetStreamIdentities();
+            return await Aggregate.GetOutputStreams();
         }
 
         public async Task TearDown()

@@ -102,7 +102,7 @@ namespace Orleans.Streams.Test
 
             var factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
             var query = await source.Select(x => x, factory);
-            var queryOutputStreams = await query.GetStreamIdentities();
+            var queryOutputStreams = await query.GetOutputStreams();
 
             var resultConsumer = new TestTransactionalStreamConsumerAggregate<int>(_provider);
             await resultConsumer.SetInput(queryOutputStreams);
@@ -133,8 +133,8 @@ namespace Orleans.Streams.Test
             var source = new MultiStreamProvider<int>(_provider, numberOfStreamsPerLevel);
 
             var factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
-            var aggregateOne = await factory.CreateSelect<int, int>(_ => _, await source.GetStreamIdentities());
-            var aggregateTwo = await factory.CreateSelect<int, int>(_ => _, await aggregateOne.GetStreamIdentities());
+            var aggregateOne = await factory.CreateSelect<int, int>(_ => _, await source.GetOutputStreams());
+            var aggregateTwo = await factory.CreateSelect<int, int>(_ => _, await aggregateOne.GetOutputStreams());
             
 
             var firstElement = new StreamProcessorChainStart<int, int, DefaultStreamProcessorAggregateFactory>(aggregateOne, source, new DefaultStreamProcessorAggregateFactory(GrainFactory));
@@ -162,7 +162,7 @@ namespace Orleans.Streams.Test
             var source = new MultiStreamProvider<TIn>(_provider, 2);
 
             var query = await createStreamProcessingChainFunc(source, _factory);
-            var queryOutputStreams = await query.GetStreamIdentities();
+            var queryOutputStreams = await query.GetOutputStreams();
 
             var resultConsumer = new TestTransactionalStreamConsumerAggregate<TOut>(_provider);
             await resultConsumer.SetInput(queryOutputStreams);

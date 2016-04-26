@@ -24,7 +24,7 @@ namespace Orleans.Streams.Endpoints
             _tearDownExecuted = false;
         }
 
-        public async Task<IList<StreamIdentity>> GetStreamIdentities()
+        public async Task<IList<StreamIdentity>> GetOutputStreams()
         {
             var result = await Task.WhenAll(_senders.Select(s => s.GetStreamIdentity()));
 
