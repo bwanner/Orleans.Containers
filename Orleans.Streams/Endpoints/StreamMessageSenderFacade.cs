@@ -10,7 +10,7 @@ namespace Orleans.Streams.Endpoints
     ///     Makes default stream operations available via its interface.
     /// </summary>
     /// <typeparam name="T">Data type transmitted via the stream</typeparam>
-    public class StreamMessageSenderFacade<T> : ITransactionalStreamTearDown, ITransactionalStreamProvider
+    public class StreamMessageSenderFacade<T> : ITransactionalStreamTearDown
     {
         private readonly List<T> _addItems = new List<T>();
         private readonly List<T> _updateItems = new List<T>();
@@ -76,9 +76,12 @@ namespace Orleans.Streams.Endpoints
 
         public async Task FlushQueue()
         {
-            await Sender.SendMessage(new ItemAddMessage<T>(_addItems));
-            await Sender.SendMessage(new ItemUpdateMessage<T>(_updateItems));
-            await Sender.SendMessage(new ItemRemoveMessage<T>(_removeItems));
+            if(_addItems.Count > 0)
+                await Sender.SendMessage(new ItemAddMessage<T>(_addItems));
+            if(_updateItems.Count > 0)
+                await Sender.SendMessage(new ItemUpdateMessage<T>(_updateItems));
+            if(_removeItems.Count > 0)
+                await Sender.SendMessage(new ItemRemoveMessage<T>(_removeItems));
 
             _addItems.Clear();
             _updateItems.Clear();
@@ -99,7 +102,7 @@ namespace Orleans.Streams.Endpoints
 
         public Task<StreamIdentity> GetStreamIdentity()
         {
-            return ((ITransactionalStreamProvider) Sender).GetStreamIdentity();
+            return Sender.GetStreamIdentity();
         }
     }
 }

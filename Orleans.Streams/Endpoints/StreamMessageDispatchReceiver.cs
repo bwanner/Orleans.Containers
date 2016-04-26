@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Orleans.Streams.Messages;
 
@@ -10,7 +11,7 @@ namespace Orleans.Streams.Endpoints
         private readonly Dictionary<Type, List<dynamic>> _callbacks = new Dictionary<Type, List<dynamic>>();
         private readonly IStreamProvider _streamProvider;
         private readonly Func<Task> _tearDownFunc;
-        private StreamSubscriptionHandle<IStreamMessage> _streamHandle;
+        private List<StreamSubscriptionHandle<IStreamMessage>> _streamHandles;
         private bool _tearDownExecuted;
 
         public StreamMessageDispatchReceiver(IStreamProvider streamProvider, Func<Task> tearDownFunc = null)
@@ -18,6 +19,7 @@ namespace Orleans.Streams.Endpoints
             _streamProvider = streamProvider;
             _tearDownFunc = tearDownFunc;
             _tearDownExecuted = false;
+            _streamHandles = new List<StreamSubscriptionHandle<IStreamMessage>>();
         }
 
         public async Task Visit(IStreamMessage streamMessage)
@@ -39,9 +41,7 @@ namespace Orleans.Streams.Endpoints
             _tearDownExecuted = false;
             var messageStream = _streamProvider.GetStream<IStreamMessage>(streamIdentity.StreamIdentifier.Item1, streamIdentity.StreamIdentifier.Item2);
 
-            _streamHandle =
-                await messageStream.SubscribeAsync((message, token) => Visit(message), async () => await TearDown());
-            // TODO evaluate OnNextBatchAsync
+            _streamHandles.Add(await messageStream.SubscribeAsync((message, token) => Visit(message), async () => await TearDown()));
         }
 
         public void Register<T>(Func<T, Task> func)
@@ -60,12 +60,13 @@ namespace Orleans.Streams.Endpoints
             if (!_tearDownExecuted)
             {
                 _tearDownExecuted = true;
-                if (_streamHandle != null)
+                if (_streamHandles != null)
                 {
-                    await _streamHandle.UnsubscribeAsync();
+                    await Task.WhenAll(_streamHandles.Select(s => s.UnsubscribeAsync()));
+                    _streamHandles.Clear();
+                    _streamHandles = null;
                 }
 
-                _streamHandle = null;
                 if (_tearDownFunc != null)
                 {
                     await _tearDownFunc();

@@ -199,7 +199,7 @@ namespace Orleans.Collections
             await
                 Task.WhenAll(_containers.Zip(streamIdentities,
                     (grain, identity) => new Tuple<IContainerNodeGrain<T>, StreamIdentity>(grain, identity))
-                    .Select(t => t.Item1.SetInput(t.Item2)));
+                    .Select(t => t.Item1.SubscribeToStream(t.Item2)));
         }
 
         public async Task TransactionComplete(Guid transactionId)
@@ -209,9 +209,10 @@ namespace Orleans.Collections
 
         public async Task<IList<StreamIdentity>> GetStreamIdentities()
         {
-            var streamTasks = await Task.WhenAll(_containers.Select(c => c.GetStreamIdentity()));
+            var streamTasks = await Task.WhenAll(_containers.Select(c => c.GetOutputStreams()));
 
-            return new List<StreamIdentity>(streamTasks);
+            var resultingStreams = streamTasks.SelectMany(s => s).ToList();
+            return resultingStreams;
         }
 
         public Task<bool> IsTearedDown()

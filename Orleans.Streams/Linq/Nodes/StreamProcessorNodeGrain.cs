@@ -14,7 +14,7 @@ namespace Orleans.Streams.Linq.Nodes
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
         protected StreamMessageSenderFacade<TOut> StreamSender;
 
-        public async Task SetInput(StreamIdentity inputStream)
+        public async Task SubscribeToStream(StreamIdentity inputStream)
         {
             await StreamMessageDispatchReceiver.Subscribe(inputStream);
         }
@@ -24,9 +24,9 @@ namespace Orleans.Streams.Linq.Nodes
             return _streamTransactionReceiver.TransactionComplete(transactionId);
         }
 
-        public async Task<StreamIdentity> GetStreamIdentity()
+        public async Task<IEnumerable<StreamIdentity>> GetOutputStreams()
         {
-            return await StreamSender.GetStreamIdentity();
+            return new List<StreamIdentity> { await StreamSender.GetStreamIdentity() };
         }
 
         public virtual async Task TearDown()

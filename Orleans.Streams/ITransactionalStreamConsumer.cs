@@ -6,7 +6,7 @@ namespace Orleans.Streams
 {
     public interface ITransactionalStreamConsumer : ITransactionalStreamTearDown
     {
-        Task SetInput(StreamIdentity inputStream);
+        Task SubscribeToStream(StreamIdentity inputStream);
 
         Task TransactionComplete(Guid transactionId);
     }

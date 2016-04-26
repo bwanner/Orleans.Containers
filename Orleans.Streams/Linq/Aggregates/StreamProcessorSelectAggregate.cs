@@ -18,7 +18,7 @@ namespace Orleans.Streams.Linq.Aggregates
         {
             var node = GrainFactory.GetGrain<IStreamProcessorSelectNodeGrain<TIn, TOut>>(Guid.NewGuid());
             await node.SetFunction(_functionTemplate);
-            await node.SetInput(identity);
+            await node.SubscribeToStream(identity);
 
             return node;
         }

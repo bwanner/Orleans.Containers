@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Orleans.Streams
 {
@@ -9,9 +10,9 @@ namespace Orleans.Streams
     public interface ITransactionalStreamProvider : ITransactionalStreamTearDown
     {
         /// <summary>
-        /// Get identity of the provided stream.
+        /// Get identities of the provided output streams.
         /// </summary>
         /// <returns></returns>
-        Task<StreamIdentity> GetStreamIdentity();
+        Task<IEnumerable<StreamIdentity>> GetOutputStreams();
     }
 }

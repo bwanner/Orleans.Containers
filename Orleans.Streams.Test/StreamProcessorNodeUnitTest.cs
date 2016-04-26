@@ -37,7 +37,7 @@ namespace Orleans.Collections.Test
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
             var testProvider = new MultiStreamProvider<int>(provider, 1);
-            await processor.SetInput((await testProvider.GetStreamIdentities()).First());
+            await processor.SubscribeToStream((await testProvider.GetStreamIdentities()).First());
 
             var testConsumer = new MultiStreamListConsumer<int>(provider);
 
@@ -60,7 +60,7 @@ namespace Orleans.Collections.Test
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
             var testProvider = new MultiStreamProvider<int>(provider, 1);
-            await processor.SetInput((await testProvider.GetStreamIdentities()).First());
+            await processor.SubscribeToStream((await testProvider.GetStreamIdentities()).First());
 
             var testConsumer = new MultiStreamListConsumer<int>(provider);
             await SubscribeConsumer(processor, testConsumer);
@@ -75,7 +75,7 @@ namespace Orleans.Collections.Test
 
         private async Task SubscribeConsumer(IStreamProcessorSelectNodeGrain<int, int> processor, MultiStreamListConsumer<int> testConsumer)
         {
-            await testConsumer.SetInput(new List<StreamIdentity>() {await processor.GetStreamIdentity()});
+            await testConsumer.SetInput(await processor.GetOutputStreams());
         }
 
         [TestMethod]

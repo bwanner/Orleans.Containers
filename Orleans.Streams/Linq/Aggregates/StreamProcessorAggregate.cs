@@ -28,9 +28,10 @@ namespace Orleans.Streams.Linq.Aggregates
 
         public async Task<IList<StreamIdentity>> GetStreamIdentities()
         {
-            var result = await Task.WhenAll(ProcessorNodes.Select(n => n.GetStreamIdentity()));
+            var result = await Task.WhenAll(ProcessorNodes.Select(n => n.GetOutputStreams()));
 
-            return result.ToList();
+            var resultingStreams = result.SelectMany(s => s).ToList();
+            return resultingStreams;
         }
 
         public async Task<bool> IsTearedDown()

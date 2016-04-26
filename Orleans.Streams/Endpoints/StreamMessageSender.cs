@@ -5,7 +5,7 @@ using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
 {
-    public class StreamMessageSender : ITransactionalStreamProvider
+    public class StreamMessageSender
     {
         public const string StreamNamespacePrefix = "StreamMessageSender";
         private readonly IAsyncStream<IStreamMessage> _messageStream;

@@ -63,7 +63,7 @@ namespace Orleans.Collections.Test
         {
             var container = GetRandomContainerGrain<int>();
             var consumer = new MultiStreamListConsumer<ContainerElement<int>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity>() { await container.GetStreamIdentity() }); ;
+            await consumer.SetInput(await container.GetOutputStreams());
             var tid = await container.EnumerateToSubscribers();
 
             await consumer.TransactionComplete(tid);
@@ -77,7 +77,7 @@ namespace Orleans.Collections.Test
 
             var container = GetRandomContainerGrain<int>();
             var consumer = new MultiStreamListConsumer<ContainerElement<int>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity>() { await container.GetStreamIdentity() });
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var reference = await container.AddRange(l);
             
@@ -98,7 +98,7 @@ namespace Orleans.Collections.Test
 
             var container = GetRandomContainerGrain<DummyInt>();
             var consumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity>() { await container.GetStreamIdentity() });
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var references = await container.AddRange(l);
 
@@ -147,7 +147,7 @@ namespace Orleans.Collections.Test
 
             var container = GetRandomContainerGrain<DummyInt>();
             var consumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity>() { await container.GetStreamIdentity() });
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var reference = await container.AddRange(l);
 
@@ -174,7 +174,7 @@ namespace Orleans.Collections.Test
 
             var container = GetRandomContainerGrain<DummyInt>();
             var consumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity>() { await container.GetStreamIdentity()});
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var reference = await container.AddRange(l);
 
@@ -200,7 +200,7 @@ namespace Orleans.Collections.Test
 
             var container = GetRandomContainerGrain<DummyInt>();
             var consumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity>() {await container.GetStreamIdentity()});
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var reference = (await container.AddRange(new List<DummyInt>() {item})).First();
 

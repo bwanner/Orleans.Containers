@@ -180,7 +180,7 @@ namespace Orleans.Collections
             return ExecuteSync((x, state) => func(x), null, reference);
         }
 
-        public async Task SetInput(StreamIdentity inputStream)
+        public async Task SubscribeToStream(StreamIdentity inputStream)
         {
             await StreamMessageDispatchReceiver.Subscribe(inputStream);
         }
@@ -190,9 +190,9 @@ namespace Orleans.Collections
             return _streamTransactionReceiver.TransactionComplete(transactionId);
         }
 
-        public async Task<StreamIdentity> GetStreamIdentity()
+        public async Task<IEnumerable<StreamIdentity>> GetOutputStreams()
         {
-            return await OutputProducer.GetStreamIdentity();
+            return new List<StreamIdentity> { await OutputProducer.GetStreamIdentity() };
         }
 
         public async Task<bool> IsTearedDown()
