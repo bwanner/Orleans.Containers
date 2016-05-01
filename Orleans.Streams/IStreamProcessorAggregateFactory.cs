@@ -12,5 +12,12 @@ namespace Orleans.Streams
     public interface IStreamProcessorAggregateFactory
     {
         IGrainFactory GrainFactory { get; }
+
+        Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Expression<Func<TIn, TOut>> selectionFunc,
+            IList<StreamIdentity> streamIdentities);
+
+        Task<IStreamProcessorAggregate<TIn, TIn>> CreateWhere<TIn>(Expression<Func<TIn, bool>> filterFunc, IList<StreamIdentity> streamIdentities);
+
+        Task<IStreamProcessorAggregate<TIn, TOut>> CreateSimpleSelectMany<TIn, TOut>(Expression<Func<TIn, IEnumerable<TOut>>> selectionFunc, IList<StreamIdentity> list);
     }
 }

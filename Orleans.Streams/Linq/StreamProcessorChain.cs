@@ -66,7 +66,7 @@ namespace Orleans.Streams.Linq
         }
     }
 
-    public interface IStreamProcessorChain<TOut, TFactory> : ITransactionalStreamProviderAggregate<TOut> where TFactory : IStreamProcessorAggregateFactory
+    public interface IStreamProcessorChain<TOut, TFactory> : ITransactionalStreamProvider<TOut> where TFactory : IStreamProcessorAggregateFactory
     {
         TFactory Factory { get; }
     }

@@ -39,5 +39,10 @@ namespace Orleans.Streams
 
             return processorAggregate;
         }
+
+        public Task<IStreamProcessorAggregate<TIn, TOut>> CreateSimpleSelectMany<TIn, TOut>(Expression<Func<TIn, IEnumerable<TOut>>> selectionFunc, IList<StreamIdentity> list)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

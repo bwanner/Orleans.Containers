@@ -10,25 +10,21 @@ namespace Orleans.Streams.Endpoints
     /// Provides multiple transactional streams.
     /// </summary>
     /// <typeparam name="T">Type of items to stream.</typeparam>
-    public class MultiStreamProvider<T> : ITransactionalStreamProviderAggregate<T>
+    public class MultiStreamProvider<T> : ITransactionalStreamProvider<T>
     {
-        private readonly List<StreamMessageSenderFacade<T>> _providers;
+        private readonly StreamMessageSenderComposite<T> _compositeSender;
 
         private bool _tearDownExecuted;
-        private List<StreamMessageSender> _senders;
 
         public MultiStreamProvider(IStreamProvider provider, int numberOutputStreams)
         {
-            _senders = Enumerable.Range(0, numberOutputStreams).Select(i => new StreamMessageSender(provider)).ToList();
-            _providers = _senders.Select(s => new StreamMessageSenderFacade<T>(s)).ToList();
+            _compositeSender = new StreamMessageSenderComposite<T>(provider, numberOutputStreams);
             _tearDownExecuted = false;
         }
 
-        public async Task<IList<StreamIdentity>> GetOutputStreams()
+        public Task<IList<StreamIdentity>> GetOutputStreams()
         {
-            var result = await Task.WhenAll(_senders.Select(s => s.GetStreamIdentity()));
-
-            return result.ToList();
+            return _compositeSender.GetOutputStreams();
         }
 
         public Task<bool> IsTearedDown()
@@ -38,7 +34,7 @@ namespace Orleans.Streams.Endpoints
 
         public async Task TearDown()
         {
-            await Task.WhenAll(_senders.Select(s => s.TearDown()));
+            await _compositeSender.TearDown();
             _tearDownExecuted = true;
         }
 
@@ -51,14 +47,9 @@ namespace Orleans.Streams.Endpoints
         {
             var transactionId = Guid.NewGuid();
 
-            var itemsPerProvider = (int) Math.Ceiling(data.Count/(double) _providers.Count);
-            var chunks = data.BatchIEnumerable(itemsPerProvider);
-            await Task.WhenAll(_providers.Select(p => p.StartTransaction(transactionId)));
-            var tasks =
-                _providers.Zip(chunks, (p, c) => new Tuple<StreamMessageSenderFacade<T>, IList<T>>(p, c))
-                    .Select(t => t.Item1.SendItems(t.Item2));
-            await Task.WhenAll(tasks);
-            await Task.WhenAll(_providers.Select(p => p.EndTransaction(transactionId)));
+            await _compositeSender.StartTransaction(transactionId);
+            await _compositeSender.SendItems(data);
+            await _compositeSender.EndTransaction(transactionId);
 
             return transactionId;
         }

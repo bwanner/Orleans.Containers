@@ -75,11 +75,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DefaultStreamProcessorAggregateFactory.cs" />
+    <Compile Include="Endpoints\IStreamMessageSender.cs" />
     <Compile Include="Endpoints\MultiStreamListConsumer.cs" />
     <Compile Include="Endpoints\SingleStreamTransactionReceiver.cs" />
     <Compile Include="Endpoints\MultiStreamProvider.cs" />
     <Compile Include="Endpoints\MultiStreamConsumer.cs" />
-    <Compile Include="Endpoints\StreamMessageSender.cs" />
+    <Compile Include="Endpoints\InternalStreamMessageSender.cs" />
+    <Compile Include="Endpoints\StreamMessageSenderComposite.cs" />
+    <Compile Include="ITransactionalMultiplexingStreamProvider.cs" />
     <Compile Include="Messages\IStreamMessage.cs" />
     <Compile Include="Messages\IStreamMessageVisitor.cs" />
     <Compile Include="IStreamProcessorAggregate.cs" />
@@ -88,7 +91,6 @@
     <Compile Include="ITransactionalStreamConsumer.cs" />
     <Compile Include="ITransactionalStreamConsumerAggregate.cs" />
     <Compile Include="ITransactionalStreamProvider.cs" />
-    <Compile Include="ITransactionalStreamProviderAggregate.cs" />
     <Compile Include="ITransactionalStreamTearDown.cs" />
     <Compile Include="Linq\Aggregates\IStreamProcessorWhereAggregate.cs" />
     <Compile Include="Linq\Aggregates\IStreamProcessorSelectAggregate.cs" />
@@ -108,8 +110,9 @@
     <Compile Include="Properties\orleans.codegen.cs" />
     <Compile Include="Linq\Aggregates\StreamProcessorSelectAggregate.cs" />
     <Compile Include="Linq\Nodes\StreamProcessorNodeGrain.cs" />
-    <Compile Include="Endpoints\StreamMessageSenderFacade.cs" />
+    <Compile Include="Endpoints\StreamMessageSender.cs" />
     <Compile Include="Messages\TransactionMessage.cs" />
+    <Compile Include="SenderExtensions.cs" />
     <Compile Include="SerializableFunc.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

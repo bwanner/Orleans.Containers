@@ -20,17 +20,16 @@ namespace Orleans.Collections
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
         private SingleStreamTransactionReceiver _streamTransactionReceiver;
         protected ContainerElementList<T> Elements;
-        protected StreamMessageSenderFacade<ContainerElement<T>> OutputProducer;
+        protected StreamMessageSender<ContainerElement<T>> OutputProducer;
 
         public virtual Task<IReadOnlyCollection<ContainerElementReference<T>>> AddRange(IEnumerable<T> items)
         {
             return Task.FromResult(Elements.AddRange(items));
         }
 
-        protected StreamMessageSenderFacade<ContainerElement<T>> SetupSenderStream(StreamIdentity streamIdentity)
+        protected StreamMessageSender<ContainerElement<T>> SetupSenderStream(StreamIdentity streamIdentity)
         {
-            var sender = new StreamMessageSender(GetStreamProvider(StreamProviderName), streamIdentity);
-            var transactionalSender = new StreamMessageSenderFacade<ContainerElement<T>>(sender);
+            var transactionalSender = new StreamMessageSender<ContainerElement<T>>(GetStreamProvider(StreamProviderName), streamIdentity);
 
             return transactionalSender;
         }
@@ -192,7 +191,7 @@ namespace Orleans.Collections
 
         public async Task<IList<StreamIdentity>> GetOutputStreams()
         {
-            return new List<StreamIdentity> { await OutputProducer.GetStreamIdentity() };
+            return await OutputProducer.GetOutputStreams();
         }
 
         public async Task<bool> IsTearedDown()
@@ -209,9 +208,8 @@ namespace Orleans.Collections
 
         public override async Task OnActivateAsync()
         {
-            var streamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
-            OutputProducer = new StreamMessageSenderFacade<ContainerElement<T>>(streamMessageSender);
-            StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), TearDown);
+            OutputProducer = new StreamMessageSender<ContainerElement<T>>(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
+            StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), GetLogger(), TearDown);
             _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
             StreamMessageDispatchReceiver.Register<ItemAddMessage<T>>(ProcessItemMessage);
             Elements = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());

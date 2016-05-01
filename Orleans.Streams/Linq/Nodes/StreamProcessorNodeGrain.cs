@@ -13,7 +13,7 @@ namespace Orleans.Streams.Linq.Nodes
         private const string StreamProviderNamespace = "CollectionStreamProvider";
         private SingleStreamTransactionReceiver _streamTransactionReceiver;
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
-        protected StreamMessageSenderFacade<TOut> StreamSender;
+        protected StreamMessageSender<TOut> StreamSender;
 
         public async Task SubscribeToStreams(IEnumerable<StreamIdentity> inputStream)
         {
@@ -25,9 +25,9 @@ namespace Orleans.Streams.Linq.Nodes
             return _streamTransactionReceiver.TransactionComplete(transactionId);
         }
 
-        public async Task<IList<StreamIdentity>> GetOutputStreams()
+        public Task<IList<StreamIdentity>> GetOutputStreams()
         {
-            return new List<StreamIdentity> { await StreamSender.GetStreamIdentity() };
+            return StreamSender.GetOutputStreams();
         }
 
         public virtual async Task TearDown()
@@ -56,9 +56,8 @@ namespace Orleans.Streams.Linq.Nodes
         public override Task OnActivateAsync()
         {
             base.OnActivateAsync();
-            var streamMessageSender = new StreamMessageSender(GetStreamProvider(StreamProviderNamespace), this.GetPrimaryKey());
-            StreamSender = new StreamMessageSenderFacade<TOut>(streamMessageSender);
-            StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderNamespace), TearDown);
+            StreamSender = new StreamMessageSender<TOut>(GetStreamProvider(StreamProviderNamespace), this.GetPrimaryKey());
+            StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderNamespace), GetLogger(), TearDown);
             _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
             RegisterMessages();
             return TaskDone.Done;

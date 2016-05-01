@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Runtime;
 using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
@@ -14,9 +15,12 @@ namespace Orleans.Streams.Endpoints
         private List<StreamSubscriptionHandle<IStreamMessage>> _streamHandles;
         private bool _tearDownExecuted;
 
-        public StreamMessageDispatchReceiver(IStreamProvider streamProvider, Func<Task> tearDownFunc = null)
+        private Logger _logger;
+
+        public StreamMessageDispatchReceiver(IStreamProvider streamProvider, Logger logger = null, Func<Task> tearDownFunc = null)
         {
             _streamProvider = streamProvider;
+            _logger = logger;
             _tearDownFunc = tearDownFunc;
             _tearDownExecuted = false;
             _streamHandles = new List<StreamSubscriptionHandle<IStreamMessage>>();
@@ -31,6 +35,8 @@ namespace Orleans.Streams.Endpoints
             {
                 foreach (var func in funcList)
                 {
+                    if(_logger != null && _logger.IsInfo)
+                        _logger.Info("Dispatching message of type {0}", streamMessage.GetType().FullName);
                     await func(streamMessage as dynamic);
                 }
             }

@@ -13,7 +13,7 @@ using MetaLinq;
 
 namespace Orleans.Streams
 {
-	<# for(int i = 1; i <= 2; i++)
+	<# for(int i = 0; i <= 2; i++)
 	{
 	#>
 
@@ -26,29 +26,29 @@ namespace Orleans.Streams
 <# } #>
 	/// <typeparam name="TOut"></typeparam>
     [Serializable]
-    public class SerializableFunc<<#= string.Join(", ", Enumerable.Range(1, i).Select(j => "T" + j)) #>, TOut>
+    public class SerializableFunc<<#= string.Join(" ", Enumerable.Range(1, i).Select(j => "T" + j + ",")) #>TOut>
     {
         private readonly Type _type;
 
         private readonly string _xmlString;
 
-        [NonSerialized] private Expression<Func<<#= string.Join(", ", Enumerable.Range(1, i).Select(j => "T" + j)) #>, TOut>> _expression;
+        [NonSerialized] private Expression<Func<<#= string.Join(" ", Enumerable.Range(1, i).Select(j => "T" + j + ",")) #>TOut>> _expression;
 
         /// <summary>
         /// Get the expression.
         /// </summary>
-        public Expression<Func<<#= string.Join(", ", Enumerable.Range(1, i).Select(j => "T" + j)) #>, TOut>> Value => ComputeExpression();
+        public Expression<Func<<#= string.Join(" ", Enumerable.Range(1, i).Select(j => "T" + j + ",")) #>TOut>> Value => ComputeExpression();
 
-        public static implicit operator SerializableFunc<<#= string.Join(", ", Enumerable.Range(1, i).Select(j => "T" + j)) #>, TOut>(Expression<Func<<#= string.Join(", ", Enumerable.Range(1, i).Select(j => "T" + j)) #>, TOut>> expression)
+        public static implicit operator SerializableFunc<<#= string.Join(" ", Enumerable.Range(1, i).Select(j => "T" + j + ",")) #>TOut>(Expression<Func<<#= string.Join(" ", Enumerable.Range(1, i).Select(j => "T" + j + ",")) #>TOut>> expression)
         {
-            return new SerializableFunc<<#= string.Join(", ", Enumerable.Range(1, i).Select(j => "T" + j)) #>, TOut>(expression);
+            return new SerializableFunc<<#= string.Join(" ", Enumerable.Range(1, i).Select(j => "T" + j + ",")) #>TOut>(expression);
         }
 
         /// <summary>
         /// Create a new SerializableExpression.
         /// </summary>
         /// <param name="expression">Expression to serialize.</param>
-        public SerializableFunc(Expression<Func<<#= string.Join(", ", Enumerable.Range(1, i).Select(j => "T" + j)) #>, TOut>> expression)
+        public SerializableFunc(Expression<Func<<#= string.Join(" ", Enumerable.Range(1, i).Select(j => "T" + j + ",")) #>TOut>> expression)
         {
             var editableExpression = EditableExpression.CreateEditableExpression(expression);
 
@@ -60,7 +60,7 @@ namespace Orleans.Streams
             _type = editableExpression.GetType();
         }
 
-        private Expression<Func<<#= string.Join(", ", Enumerable.Range(1, i).Select(j => "T" + j)) #>, TOut>> ComputeExpression()
+        private Expression<Func<<#= string.Join(" ", Enumerable.Range(1, i).Select(j => "T" + j + ",")) #>TOut>> ComputeExpression()
         {
             if (_expression == null)
             {
@@ -68,7 +68,7 @@ namespace Orleans.Streams
                 var ms = new MemoryStream(Encoding.UTF8.GetBytes(_xmlString));
                 var o = serializer.Deserialize(ms);
                 var editableExpression = (EditableExpression) o;
-                _expression = (Expression<Func<<#= string.Join(", ", Enumerable.Range(1, i).Select(j => "T" + j)) #>, TOut>>) editableExpression.ToExpression();
+                _expression = (Expression<Func<<#= string.Join(" ", Enumerable.Range(1, i).Select(j => "T" + j + ",")) #>TOut>>) editableExpression.ToExpression();
             }
 
             return _expression;

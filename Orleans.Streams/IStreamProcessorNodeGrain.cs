@@ -5,6 +5,5 @@
     /// </summary>
     public interface IStreamProcessorNodeGrain<TIn, TOut> : IGrainWithGuidKey, ITransactionalStreamProvider<TOut>, ITransactionalStreamConsumer
     {
-        // TODO parallel function
     }
 }
