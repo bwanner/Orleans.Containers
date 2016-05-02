@@ -10,10 +10,10 @@ namespace Orleans.Streams.Linq.Nodes
 {
     public abstract class StreamProcessorNodeGrain<TIn, TOut> : Grain, IStreamProcessorNodeGrain<TIn, TOut>
     {
-        private const string StreamProviderNamespace = "CollectionStreamProvider";
+        protected const string StreamProviderNamespace = "CollectionStreamProvider";
         private SingleStreamTransactionReceiver _streamTransactionReceiver;
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
-        protected StreamMessageSender<TOut> StreamSender;
+        protected IStreamMessageSender<TOut> StreamSender;
 
         public async Task SubscribeToStreams(IEnumerable<StreamIdentity> inputStream)
         {

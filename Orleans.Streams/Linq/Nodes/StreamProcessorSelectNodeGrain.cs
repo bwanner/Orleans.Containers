@@ -1,31 +1,32 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Orleans.Collections.Messages;
-using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Linq.Nodes
 {
+    /// <summary>
+    ///     Executes select operation on a stream and forwards it to its output stream.
+    /// </summary>
     internal class StreamProcessorSelectNodeGrain<TIn, TOut> : StreamProcessorNodeGrain<TIn, TOut>, IStreamProcessorSelectNodeGrain<TIn, TOut>
     {
         private Func<TIn, TOut> _function;
 
-        public override Task OnActivateAsync()
+        /// <summary>
+        ///     Set the select function.
+        /// </summary>
+        /// <param name="function">Selection function for each item.</param>
+        /// <returns></returns>
+        public Task SetFunction(SerializableFunc<TIn, TOut> function)
         {
-            return base.OnActivateAsync();
+            _function = function.Value.Compile();
+            return TaskDone.Done;
         }
 
         protected override void RegisterMessages()
         {
             base.RegisterMessages();
             StreamMessageDispatchReceiver.Register<ItemAddMessage<TIn>>(ProcessItemAddMessage);
-        }
-
-        public Task SetFunction(SerializableFunc<TIn, TOut> function)
-        {
-            _function = function.Value.Compile();
-            return TaskDone.Done;
         }
 
         protected async Task ProcessItemAddMessage(ItemAddMessage<TIn> itemMessage)

@@ -5,6 +5,9 @@ using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
 {
+    /// <summary>
+    ///     Internal stream message sender implementation to abstract form Orleans Streams.
+    /// </summary>
     internal class InternalStreamMessageSender
     {
         public const string StreamNamespacePrefix = "StreamMessageSender";

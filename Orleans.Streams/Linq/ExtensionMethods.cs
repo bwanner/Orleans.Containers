@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 
 namespace Orleans.Streams.Linq
 {
+    /// <summary>
+    /// Defines SQO extension methods for stream processing.
+    /// </summary>
     public static class ExtensionMethods
     {
         #region Select

@@ -6,14 +6,14 @@ using Orleans.Streams.Messages;
 namespace Orleans.Streams.Endpoints
 {
     /// <summary>
-    /// Consumes items of a single stream.
+    ///     Keeps state of received transaction IDs.
     /// </summary>
     public class SingleStreamTransactionReceiver
     {
         private readonly Dictionary<Guid, TaskCompletionSource<Task>> _awaitedTransactions;
 
         /// <summary>
-        /// Constructor.
+        ///     Constructor.
         /// </summary>
         /// <param name="dispatchReceiver">Dispatcher used to subscribe to transaction message.</param>
         public SingleStreamTransactionReceiver(StreamMessageDispatchReceiver dispatchReceiver)
@@ -23,7 +23,7 @@ namespace Orleans.Streams.Endpoints
         }
 
         /// <summary>
-        /// Returns if transaction is completed.
+        ///     Returns if transaction is completed.
         /// </summary>
         /// <param name="transactionId">Transaction identifier.</param>
         /// <returns></returns>
@@ -38,7 +38,7 @@ namespace Orleans.Streams.Endpoints
         }
 
         /// <summary>
-        /// Process a transaction message.
+        ///     Process a transaction message.
         /// </summary>
         /// <param name="transactionMessage"></param>
         private Task ProcessTransactionMessage(TransactionMessage transactionMessage)

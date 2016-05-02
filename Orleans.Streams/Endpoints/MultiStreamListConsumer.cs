@@ -1,21 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Orleans.Collections.Messages;
 
 namespace Orleans.Streams.Endpoints
 {
     /// <summary>
-    /// Consumes items from multiple streams and places them in a list.
+    ///     Consumes items from multiple streams and places them in a list.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class MultiStreamListConsumer<T> : MultiStreamConsumer<T>
     {
-        public List<T> Items { get; private set; }
+        /// <summary>
+        ///     List of stored items.
+        /// </summary>
+        public List<T> Items { get; }
 
         /// <summary>
-        /// Constructor.
+        ///     Constructor.
         /// </summary>
         /// <param name="streamProvider">Stream provider to use.</param>
         public MultiStreamListConsumer(IStreamProvider streamProvider) : base(streamProvider)

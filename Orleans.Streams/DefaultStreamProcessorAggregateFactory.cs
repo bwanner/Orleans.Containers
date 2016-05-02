@@ -6,6 +6,9 @@ using Orleans.Streams.Linq.Aggregates;
 
 namespace Orleans.Streams
 {
+    /// <summary>
+    /// Default aggregate factory for stream processing using stateless processors aggregates.
+    /// </summary>
     public class DefaultStreamProcessorAggregateFactory : IStreamProcessorAggregateFactory
     {
         private readonly IGrainFactory _grainFactory;

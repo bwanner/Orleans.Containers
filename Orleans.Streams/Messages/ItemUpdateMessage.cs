@@ -11,6 +11,10 @@ namespace Orleans.Collections.Messages
     [Serializable]
     public class ItemUpdateMessage<T> : ItemMessage<T>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="items">Items to update.</param>
         public ItemUpdateMessage(IEnumerable<T> items) : base(items)
         {
         }

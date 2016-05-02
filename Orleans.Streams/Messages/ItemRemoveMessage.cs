@@ -11,6 +11,10 @@ namespace Orleans.Collections.Messages
     [Serializable]
     public class ItemRemoveMessage<T> : ItemMessage<T>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="items">Items to remove.</param>
         public ItemRemoveMessage(IEnumerable<T> items) : base(items)
         {
         }

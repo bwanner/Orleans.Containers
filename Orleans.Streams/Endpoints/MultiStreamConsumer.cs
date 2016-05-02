@@ -8,24 +8,27 @@ using Orleans.Streams.Messages;
 namespace Orleans.Streams.Endpoints
 {
     /// <summary>
-    /// Consumes items from multiple streams.
+    ///     Consumes items from multiple streams.
     /// </summary>
     /// <typeparam name="T">Type of items to consume.</typeparam>
     public class MultiStreamConsumer<T> : ITransactionalStreamConsumerAggregate
     {
-        private readonly IStreamProvider _streamProvider;
+        protected readonly List<StreamMessageDispatchReceiver> MessageDispatchers;
         protected readonly List<SingleStreamTransactionReceiver> TransactionManagers;
-        protected readonly List<StreamMessageDispatchReceiver> MessageDispatchers; 
-        private bool _tearDownExecuted;
         protected Func<IEnumerable<T>, Task> StreamItemBatchReceivedFunc;
         protected Func<TransactionMessage, Task> StreamTransactionReceivedFunc;
+        private readonly IStreamProvider _streamProvider;
+        private bool _tearDownExecuted;
 
         /// <summary>
-        /// Constructor.
+        ///     Constructor.
         /// </summary>
         /// <param name="streamProvider">Stream provider to be used.</param>
         /// <param name="streamItemBatchReceivedFunc">Asynchronous function to be executed when an item is received.</param>
-        /// <param name="streamTransactionReceivedFunc">Asynchronous function to be executed when a transaction message is received.</param>
+        /// <param name="streamTransactionReceivedFunc">
+        ///     Asynchronous function to be executed when a transaction message is
+        ///     received.
+        /// </param>
         public MultiStreamConsumer(IStreamProvider streamProvider, Func<IEnumerable<T>, Task> streamItemBatchReceivedFunc,
             Func<TransactionMessage, Task> streamTransactionReceivedFunc = null)
         {
@@ -37,7 +40,7 @@ namespace Orleans.Streams.Endpoints
         }
 
         /// <summary>
-        /// Constructor.
+        ///     Constructor.
         /// </summary>
         /// <param name="streamProvider">Stream provider to be used.</param>
         /// <param name="streamItemBatchReceivedAction">Action to be executed when an item is received.</param>
@@ -85,14 +88,8 @@ namespace Orleans.Streams.Endpoints
             }
         }
 
-        protected virtual void SetupMessageDispatcher(StreamMessageDispatchReceiver dispatcher)
-        {
-            dispatcher.Register<ItemAddMessage<T>>(ProcessItemMessage);
-            dispatcher.Register<TransactionMessage>(ProcessTransactionMessage);
-        }
-
         /// <summary>
-        /// Returns when a transaction is complete.
+        ///     Returns when a transaction is complete.
         /// </summary>
         /// <param name="transactionId">Transaction identifier.</param>
         /// <returns></returns>
@@ -102,7 +99,7 @@ namespace Orleans.Streams.Endpoints
         }
 
         /// <summary>
-        /// Returns true if consumer is teared down.
+        ///     Returns true if consumer is teared down.
         /// </summary>
         /// <returns></returns>
         public Task<bool> IsTearedDown()
@@ -116,7 +113,13 @@ namespace Orleans.Streams.Endpoints
             _tearDownExecuted = true;
         }
 
-        public async Task ProcessItemMessage(ItemAddMessage<T> message)
+        protected virtual void SetupMessageDispatcher(StreamMessageDispatchReceiver dispatcher)
+        {
+            dispatcher.Register<ItemAddMessage<T>>(ProcessItemMessage);
+            dispatcher.Register<TransactionMessage>(ProcessTransactionMessage);
+        }
+
+        private async Task ProcessItemMessage(ItemAddMessage<T> message)
         {
             if (StreamItemBatchReceivedFunc != null)
             {
@@ -124,7 +127,7 @@ namespace Orleans.Streams.Endpoints
             }
         }
 
-        public async Task ProcessTransactionMessage(TransactionMessage transactionMessage)
+        private async Task ProcessTransactionMessage(TransactionMessage transactionMessage)
         {
             if (StreamTransactionReceivedFunc != null)
             {

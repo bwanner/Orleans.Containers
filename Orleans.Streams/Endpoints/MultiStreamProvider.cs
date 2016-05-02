@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using Orleans.Runtime;
 
 namespace Orleans.Streams.Endpoints
 {
     /// <summary>
-    /// Provides multiple transactional streams.
+    ///     Provides multiple transactional streams.
     /// </summary>
     /// <typeparam name="T">Type of items to stream.</typeparam>
     public class MultiStreamProvider<T> : ITransactionalStreamProvider<T>
     {
+        // TODO REMOVE THIS CLASS
         private readonly StreamMessageSenderComposite<T> _compositeSender;
 
         private bool _tearDownExecuted;
@@ -39,7 +38,7 @@ namespace Orleans.Streams.Endpoints
         }
 
         /// <summary>
-        /// Send items to output streams as one transaction. Items are evenly distributed across providers.
+        ///     Send items to output streams as one transaction. Items are evenly distributed across providers.
         /// </summary>
         /// <param name="data">Items to send.</param>
         /// <returns>Transaction identifier.</returns>

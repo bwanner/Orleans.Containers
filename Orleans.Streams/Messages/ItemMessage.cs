@@ -5,9 +5,16 @@ using System.Threading.Tasks;
 
 namespace Orleans.Streams.Messages
 {
+    /// <summary>
+    /// Transfer items of a specific type with a message.
+    /// </summary>
+    /// <typeparam name="T">Type of items to transfer.</typeparam>
     [Serializable]
     public abstract class ItemMessage<T> : IStreamMessage
     {
+        /// <summary>
+        /// Items contained in message.
+        /// </summary>
         public IList<T> Items { get; private set; }
 
         protected ItemMessage(IEnumerable<T> items)
