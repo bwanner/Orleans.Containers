@@ -83,6 +83,7 @@
     <Compile Include="Endpoints\InternalStreamMessageSender.cs" />
     <Compile Include="Endpoints\StreamMessageSenderComposite.cs" />
     <Compile Include="ITransactionalMultiplexingStreamProvider.cs" />
+    <Compile Include="Messages\FlushMessage.cs" />
     <Compile Include="Messages\IStreamMessage.cs" />
     <Compile Include="Messages\IStreamMessageVisitor.cs" />
     <Compile Include="IStreamProcessorAggregate.cs" />

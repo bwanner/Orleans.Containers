@@ -66,6 +66,13 @@ namespace Orleans.Streams.Linq.Nodes
         protected virtual void RegisterMessages()
         {
             StreamMessageDispatchReceiver.Register<TransactionMessage>(ProcessTransactionMessage);
+            StreamMessageDispatchReceiver.Register<FlushMessage>(ProcessFlushMessage);
+        }
+
+        private async Task ProcessFlushMessage(FlushMessage message)
+        {
+            await StreamSender.FlushQueue();
+            await StreamSender.SendMessage(message);
         }
 
         protected async Task ProcessTransactionMessage(TransactionMessage transactionMessage)
