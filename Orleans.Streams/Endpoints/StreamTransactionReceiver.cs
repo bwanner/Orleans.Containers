@@ -8,17 +8,19 @@ namespace Orleans.Streams.Endpoints
     /// <summary>
     ///     Keeps state of received transaction IDs.
     /// </summary>
-    public class SingleStreamTransactionReceiver
+    public class StreamTransactionReceiver
     {
         private readonly Dictionary<Guid, TaskCompletionSource<Task>> _awaitedTransactions;
+        private readonly Dictionary<Guid, int> _awaitedTransactionCounter;
 
         /// <summary>
         ///     Constructor.
         /// </summary>
         /// <param name="dispatchReceiver">Dispatcher used to subscribe to transaction message.</param>
-        public SingleStreamTransactionReceiver(StreamMessageDispatchReceiver dispatchReceiver)
+        public StreamTransactionReceiver(StreamMessageDispatchReceiver dispatchReceiver)
         {
             _awaitedTransactions = new Dictionary<Guid, TaskCompletionSource<Task>>();
+            _awaitedTransactionCounter = new Dictionary<Guid, int>();
             dispatchReceiver.Register<TransactionMessage>(ProcessTransactionMessage);
         }
 
@@ -48,12 +50,17 @@ namespace Orleans.Streams.Endpoints
                 if (!_awaitedTransactions.ContainsKey(transactionMessage.TransactionId))
                 {
                     _awaitedTransactions[transactionMessage.TransactionId] = new TaskCompletionSource<Task>();
+                    _awaitedTransactionCounter[transactionMessage.TransactionId] = 1;
                 }
+
+                else
+                    _awaitedTransactionCounter[transactionMessage.TransactionId]++;
             }
 
             else if (transactionMessage.State == TransactionState.End)
             {
-                _awaitedTransactions[transactionMessage.TransactionId].SetResult(TaskDone.Done);
+                if(--_awaitedTransactionCounter[transactionMessage.TransactionId] == 0)
+                    _awaitedTransactions[transactionMessage.TransactionId].SetResult(TaskDone.Done);
             }
 
             return TaskDone.Done;

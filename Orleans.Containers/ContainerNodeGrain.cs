@@ -18,7 +18,7 @@ namespace Orleans.Collections
     {
         private const string StreamProviderName = "CollectionStreamProvider";
         protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
-        private SingleStreamTransactionReceiver _streamTransactionReceiver;
+        private StreamTransactionReceiver _streamTransactionReceiver;
         protected ContainerElementList<T> Elements;
         protected StreamMessageSender<ContainerElement<T>> OutputProducer;
 
@@ -210,7 +210,7 @@ namespace Orleans.Collections
         {
             OutputProducer = new StreamMessageSender<ContainerElement<T>>(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
             StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), GetLogger(), TearDown);
-            _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
+            _streamTransactionReceiver = new StreamTransactionReceiver(StreamMessageDispatchReceiver);
             StreamMessageDispatchReceiver.Register<ItemAddMessage<T>>(ProcessItemMessage);
             Elements = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
             await base.OnActivateAsync();

@@ -11,18 +11,17 @@ namespace Orleans.Streams.Linq.Nodes
     public abstract class StreamProcessorNodeGrain<TIn, TOut> : Grain, IStreamProcessorNodeGrain<TIn, TOut>
     {
         protected const string StreamProviderNamespace = "CollectionStreamProvider";
-        private SingleStreamTransactionReceiver _streamTransactionReceiver;
-        protected StreamMessageDispatchReceiver StreamMessageDispatchReceiver;
+        protected TransactionalStreamConsumer StreamConsumer;
         protected IStreamMessageSender<TOut> StreamSender;
 
         public async Task SubscribeToStreams(IEnumerable<StreamIdentity> inputStream)
         {
-            await Task.WhenAll(inputStream.Select(s => StreamMessageDispatchReceiver.Subscribe(s)));
+            await StreamConsumer.SetInput(inputStream.ToList());
         }
 
         public Task TransactionComplete(Guid transactionId)
         {
-            return _streamTransactionReceiver.TransactionComplete(transactionId);
+            return StreamConsumer.TransactionComplete(transactionId);
         }
 
         public Task<IList<StreamIdentity>> GetOutputStreams()
@@ -32,10 +31,10 @@ namespace Orleans.Streams.Linq.Nodes
 
         public virtual async Task TearDown()
         {
-            if (StreamMessageDispatchReceiver != null)
+            if (StreamConsumer != null)
             {
-                await StreamMessageDispatchReceiver.TearDown();
-                StreamMessageDispatchReceiver = null;
+                await StreamConsumer.TearDown();
+                StreamConsumer = null;
             }
 
             if (StreamSender != null)
@@ -47,7 +46,7 @@ namespace Orleans.Streams.Linq.Nodes
 
         public async Task<bool> IsTearedDown()
         {
-            var consumerTearDownState = (StreamMessageDispatchReceiver == null) || await StreamMessageDispatchReceiver.IsTearedDown();
+            var consumerTearDownState = (StreamConsumer == null) || await StreamConsumer.IsTearedDown();
             var providerTearDownState = (StreamSender == null) || await StreamSender.IsTearedDown();
 
             return consumerTearDownState && providerTearDownState;
@@ -56,36 +55,20 @@ namespace Orleans.Streams.Linq.Nodes
         public override Task OnActivateAsync()
         {
             base.OnActivateAsync();
-            StreamSender = new StreamMessageSender<TOut>(GetStreamProvider(StreamProviderNamespace), this.GetPrimaryKey());
-            StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderNamespace), GetLogger(), TearDown);
-            _streamTransactionReceiver = new SingleStreamTransactionReceiver(StreamMessageDispatchReceiver);
+            StreamConsumer = new TransactionalStreamConsumer(GetStreamProvider(StreamProviderNamespace));
             RegisterMessages();
             return TaskDone.Done;
         }
 
         protected virtual void RegisterMessages()
         {
-            StreamMessageDispatchReceiver.Register<TransactionMessage>(ProcessTransactionMessage);
-            StreamMessageDispatchReceiver.Register<FlushMessage>(ProcessFlushMessage);
+            StreamConsumer.MessageDispatcher.Register<FlushMessage>(ProcessFlushMessage);
         }
 
         private async Task ProcessFlushMessage(FlushMessage message)
         {
             await StreamSender.FlushQueue();
             await StreamSender.SendMessage(message);
-        }
-
-        protected async Task ProcessTransactionMessage(TransactionMessage transactionMessage)
-        {
-            // TODO: Make sure all items prior to sending the end message are processed when implementing methods not running on grain thread.
-            if (transactionMessage.State == TransactionState.Start)
-            {
-                await StreamSender.StartTransaction(transactionMessage.TransactionId);
-            }
-            else if (transactionMessage.State == TransactionState.End)
-            {
-                await StreamSender.EndTransaction(transactionMessage.TransactionId);
-            }
         }
     }
 }

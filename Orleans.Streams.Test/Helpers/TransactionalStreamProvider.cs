@@ -4,10 +4,10 @@ using Orleans.Streams.Endpoints;
 
 namespace Orleans.Streams.Test.Helpers
 {
-    public class TestTransactionalStreamConsumerAggregate<TIn> : MultiStreamListConsumer<TIn>
+    public class TestTransactionalTransactionalStreamConsumerAggregate<TIn> : TransactionalStreamListConsumer<TIn>
     { 
 
-        public TestTransactionalStreamConsumerAggregate(IStreamProvider streamProvider) : base(streamProvider)
+        public TestTransactionalTransactionalStreamConsumerAggregate(IStreamProvider streamProvider) : base(streamProvider)
         {
         }
 
@@ -18,9 +18,7 @@ namespace Orleans.Streams.Test.Helpers
 
         public async Task<bool> AllConsumersTearDownCalled()
         {
-            var values = await Task.WhenAll(MessageDispatchers.Select(c => c.IsTearedDown()));
-            var valuesGrouped = values.GroupBy(x => x);
-            return valuesGrouped.Count() == 1 && valuesGrouped.Count(group => group.Key == true) == 1;
+            return await MessageDispatcher.IsTearedDown();
         }
     }
 }

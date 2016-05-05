@@ -19,8 +19,8 @@ namespace Orleans.Streams.Endpoints
         public InternalStreamMessageSender(IStreamProvider provider, Guid guid = default(Guid))
         {
             guid = guid == default(Guid) ? Guid.NewGuid() : guid;
-            _streamIdentity = new StreamIdentity(StreamNamespacePrefix, guid);
-            _messageStream = provider.GetStream<IStreamMessage>(_streamIdentity.StreamIdentifier.Item1, _streamIdentity.StreamIdentifier.Item2);
+            _streamIdentity = new StreamIdentity(guid, StreamNamespacePrefix);
+            _messageStream = provider.GetStream<IStreamMessage>(_streamIdentity.Guid, _streamIdentity.Namespace);
             _tearDownExecuted = false;
             _queue = new Queue<IStreamMessage>();
         }
@@ -28,7 +28,7 @@ namespace Orleans.Streams.Endpoints
         public InternalStreamMessageSender(IStreamProvider provider, StreamIdentity targetStream)
         {
             _streamIdentity = targetStream;
-            _messageStream = provider.GetStream<IStreamMessage>(_streamIdentity.StreamIdentifier.Item1, _streamIdentity.StreamIdentifier.Item2);
+            _messageStream = provider.GetStream<IStreamMessage>(_streamIdentity.Guid, _streamIdentity.Namespace);
             _tearDownExecuted = false;
             _queue = new Queue<IStreamMessage>();
         }

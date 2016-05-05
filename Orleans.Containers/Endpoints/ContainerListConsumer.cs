@@ -7,7 +7,7 @@ using Orleans.Streams.Endpoints;
 
 namespace Orleans.Collections.Endpoints
 {
-    public class ContainerElementListConsumer<T> : MultiStreamListConsumer<ContainerElement<T>>
+    public class ContainerElementListConsumer<T> : TransactionalStreamListConsumer<ContainerElement<T>>
     {
         public ContainerElementListConsumer(IStreamProvider streamProvider) : base(streamProvider)
         {

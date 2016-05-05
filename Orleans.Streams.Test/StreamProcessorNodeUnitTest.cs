@@ -39,7 +39,7 @@ namespace Orleans.Collections.Test
             var testProvider = new MultiStreamProvider<int>(provider, 1);
             await processor.SubscribeToStreams(await testProvider.GetOutputStreams());
 
-            var testConsumer = new MultiStreamListConsumer<int>(provider);
+            var testConsumer = new TransactionalStreamListConsumer<int>(provider);
 
             await SubscribeConsumer(processor, testConsumer);
 
@@ -62,7 +62,7 @@ namespace Orleans.Collections.Test
             var testProvider = new MultiStreamProvider<int>(provider, 1);
             await processor.SubscribeToStreams(await testProvider.GetOutputStreams());
 
-            var testConsumer = new MultiStreamListConsumer<int>(provider);
+            var testConsumer = new TransactionalStreamListConsumer<int>(provider);
             await SubscribeConsumer(processor, testConsumer);
 
             var tid = await testProvider.SendItems(itemsToSend);
@@ -73,7 +73,7 @@ namespace Orleans.Collections.Test
             await testProvider.TearDown();
         }
 
-        private async Task SubscribeConsumer(IStreamProcessorSelectNodeGrain<int, int> processor, MultiStreamListConsumer<int> testConsumer)
+        private async Task SubscribeConsumer(IStreamProcessorSelectNodeGrain<int, int> processor, TransactionalStreamListConsumer<int> testConsumer)
         {
             await testConsumer.SetInput(await processor.GetOutputStreams());
         }
@@ -93,7 +93,7 @@ namespace Orleans.Collections.Test
 
             Assert.AreEqual(2, (await aggregate.GetOutputStreams()).Count);
 
-            var consumerAggregate = new TestTransactionalStreamConsumerAggregate<int>(provider);
+            var consumerAggregate = new TestTransactionalTransactionalStreamConsumerAggregate<int>(provider);
             await consumerAggregate.SetInput(await aggregate.GetOutputStreams());
 
             var tid = await inputAggregate.SendItems(itemsToSend);
@@ -130,11 +130,11 @@ namespace Orleans.Collections.Test
             var streamIdentitiesProcessor = await aggregate.GetOutputStreams();
             Assert.AreEqual(2, (await aggregate.GetOutputStreams()).Count);
 
-            var consumerAggregate = new TestTransactionalStreamConsumerAggregate<int>(provider);
+            var consumerAggregate = new TestTransactionalTransactionalStreamConsumerAggregate<int>(provider);
             await consumerAggregate.SetInput(await aggregate.GetOutputStreams());
 
-            var subscriptionHdl1 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[0].StreamIdentifier);
-            var subscriptionHdl2 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[1].StreamIdentifier);
+            var subscriptionHdl1 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[0]);
+            var subscriptionHdl2 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[1]);
 
             Assert.AreEqual(1, subscriptionHdl1.Count);
             Assert.AreEqual(1, subscriptionHdl2.Count);
@@ -147,18 +147,18 @@ namespace Orleans.Collections.Test
 
             Assert.IsFalse(taskCompleted);
 
-            subscriptionHdl1 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[0].StreamIdentifier);
-            subscriptionHdl2 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[1].StreamIdentifier);
+            subscriptionHdl1 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[0]);
+            subscriptionHdl2 = await GetStreamSubscriptionHandles<IStreamMessage>(streamIdentitiesProcessor[1]);
 
             Assert.AreEqual(0, subscriptionHdl1.Count);
             Assert.AreEqual(0, subscriptionHdl2.Count);
         }
 
 
-        private async Task<IList<StreamSubscriptionHandle<T>>> GetStreamSubscriptionHandles<T>(Tuple<Guid, string> identifier)
+        private async Task<IList<StreamSubscriptionHandle<T>>> GetStreamSubscriptionHandles<T>(StreamIdentity streamIdentity)
         {
             var result = await GrainClient.GetStreamProvider(StreamProvider)
-                .GetStream<T>(identifier.Item1, identifier.Item2)
+                .GetStream<T>(streamIdentity.Guid, streamIdentity.Namespace)
                 .GetAllSubscriptionHandles();
 
             return result;

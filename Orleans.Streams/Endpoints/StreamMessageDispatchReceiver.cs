@@ -100,7 +100,7 @@ namespace Orleans.Streams.Endpoints
         public async Task Subscribe(StreamIdentity streamIdentity)
         {
             _tearDownExecuted = false;
-            var messageStream = _streamProvider.GetStream<IStreamMessage>(streamIdentity.StreamIdentifier.Item1, streamIdentity.StreamIdentifier.Item2);
+            var messageStream = _streamProvider.GetStream<IStreamMessage>(streamIdentity.Guid, streamIdentity.Namespace);
 
             _streamHandles.Add(await messageStream.SubscribeAsync((message, token) => Visit(message), async () => await TearDown()));
         }

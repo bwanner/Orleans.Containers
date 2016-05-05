@@ -104,7 +104,7 @@ namespace Orleans.Streams.Test
             var query = await source.Select(x => x, factory);
             var queryOutputStreams = await query.GetOutputStreams();
 
-            var resultConsumer = new TestTransactionalStreamConsumerAggregate<int>(_provider);
+            var resultConsumer = new TestTransactionalTransactionalStreamConsumerAggregate<int>(_provider);
             await resultConsumer.SetInput(queryOutputStreams);
 
             Assert.AreEqual(2, queryOutputStreams.Count);
@@ -164,7 +164,7 @@ namespace Orleans.Streams.Test
             var query = await createStreamProcessingChainFunc(source, _factory);
             var queryOutputStreams = await query.GetOutputStreams();
 
-            var resultConsumer = new TestTransactionalStreamConsumerAggregate<TOut>(_provider);
+            var resultConsumer = new TestTransactionalTransactionalStreamConsumerAggregate<TOut>(_provider);
             await resultConsumer.SetInput(queryOutputStreams);
 
             Assert.AreEqual(2, queryOutputStreams.Count);

@@ -59,7 +59,7 @@ namespace Orleans.Collections.Test
 
             await distributedCollection.ExecuteSync(x => { x.Value += 232; });
 
-            var listConsumer = new MultiStreamListConsumer<ContainerElement<DummyInt>>(_provider);
+            var listConsumer = new TransactionalStreamListConsumer<ContainerElement<DummyInt>>(_provider);
             await listConsumer.SetInput(await distributedCollection.GetOutputStreams());
 
             var tid = await distributedCollection.EnumerateToSubscribers();
@@ -85,7 +85,7 @@ namespace Orleans.Collections.Test
             CollectionAssert.AllItemsAreNotNull(references); 
             // TODO reference sanity check: Should range form 0 to 20000
 
-            var consumer = new MultiStreamListConsumer<ContainerElement<int>>(_provider);
+            var consumer = new TransactionalStreamListConsumer<ContainerElement<int>>(_provider);
             await consumer.SetInput(await distributedCollection.GetOutputStreams());
 
             var tid = await distributedCollection.EnumerateToSubscribers();
@@ -104,7 +104,7 @@ namespace Orleans.Collections.Test
 
             var references = await distributedCollection.BatchAdd(l);
 
-            var consumer = new MultiStreamConsumer<ContainerElement<int>>(_provider);
+            var consumer = new TransactionalStreamConsumer(_provider);
             await consumer.SetInput(await distributedCollection.GetOutputStreams());
 
             var tid = await distributedCollection.EnumerateToSubscribers();

@@ -26,7 +26,7 @@ namespace Orleans.Streams.Linq.Nodes
         protected override void RegisterMessages()
         {
             base.RegisterMessages();
-            StreamMessageDispatchReceiver.Register<ItemAddMessage<TIn>>(ProcessItemAddMessage);
+            StreamConsumer.MessageDispatcher.Register<ItemAddMessage<TIn>>(ProcessItemAddMessage);
         }
 
         protected async Task ProcessItemAddMessage(ItemAddMessage<TIn> itemMessage)

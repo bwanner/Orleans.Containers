@@ -8,7 +8,7 @@ namespace Orleans.Streams.Endpoints
     ///     Consumes items from multiple streams and places them in a list.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class MultiStreamListConsumer<T> : MultiStreamConsumer<T>
+    public class TransactionalStreamListConsumer<T> : TransactionalStreamConsumer
     {
         /// <summary>
         ///     List of stored items.
@@ -19,7 +19,7 @@ namespace Orleans.Streams.Endpoints
         ///     Constructor.
         /// </summary>
         /// <param name="streamProvider">Stream provider to use.</param>
-        public MultiStreamListConsumer(IStreamProvider streamProvider) : base(streamProvider)
+        public TransactionalStreamListConsumer(IStreamProvider streamProvider) : base(streamProvider)
         {
             Items = new List<T>();
         }
