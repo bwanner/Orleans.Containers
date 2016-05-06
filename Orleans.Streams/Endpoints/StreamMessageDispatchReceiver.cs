@@ -20,6 +20,11 @@ namespace Orleans.Streams.Endpoints
         private bool _tearDownExecuted;
 
         /// <summary>
+        /// Executed after each message that was succesfully dispatched to a registered function. 
+        /// </summary>
+        public Func<Task> PostProcessedMessageFunc;
+
+        /// <summary>
         ///     Number of streams subscribed to.
         /// </summary>
         public int SubscriptionCount => _streamHandles.Count;
@@ -56,6 +61,11 @@ namespace Orleans.Streams.Endpoints
                     if (_logger != null && _logger.IsInfo)
                         _logger.Info("Dispatching message of type {0}", streamMessage.GetType().FullName);
                     await func(streamMessage as dynamic);
+
+                    if (PostProcessedMessageFunc != null)
+                    {
+                        await PostProcessedMessageFunc();
+                    }
                 }
             }
         }

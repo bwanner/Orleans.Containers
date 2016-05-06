@@ -18,20 +18,43 @@ namespace Orleans.Streams.Endpoints
         /// </summary>
         protected List<StreamMessageSender<T>> Senders;
 
+        private IStreamProvider _provider;
+
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="provider">Provider to use for the stream.</param>
         /// <param name="numberOfOutputStreams">Number of output streams to create.</param>
-        public StreamMessageSenderComposite(IStreamProvider provider, int numberOfOutputStreams = 1)
+        public StreamMessageSenderComposite(IStreamProvider provider, int numberOfOutputStreams = 0)
         {
-            if (numberOfOutputStreams <= 0)
+            _provider = provider;
+            if (numberOfOutputStreams < 0)
             {
                 throw new ArgumentException(nameof(numberOfOutputStreams));
             }
 
             Senders = Enumerable.Range(0, numberOfOutputStreams).Select(i => new StreamMessageSender<T>(provider)).ToList();
         }
+
+        /// <summary>
+        /// Sets the number of senders and tears down the senders if there are too many.
+        /// </summary>
+        /// <param name="numberOfOutputStreams"></param>
+        /// <returns></returns>
+        public async Task SetNumberOfSenders(int numberOfOutputStreams)
+        {
+            if(numberOfOutputStreams < 0)
+                throw new ArgumentOutOfRangeException(nameof(numberOfOutputStreams));
+            while (numberOfOutputStreams < Senders.Count)
+            {
+                await Senders[0].TearDown();
+            }
+
+            int sendersToAdd = numberOfOutputStreams - Senders.Count;
+
+            Senders.AddRange(Enumerable.Range(0, sendersToAdd).Select(i => new StreamMessageSender<T>(_provider)).ToList());
+        }
+
 
         /// <summary>
         /// Send items via this strem.

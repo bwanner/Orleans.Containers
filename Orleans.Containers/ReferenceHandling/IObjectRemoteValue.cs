@@ -24,8 +24,7 @@ namespace Orleans.Collections
 
     public enum ReceiveAction
     {
-        Lookup,
-        Insert,
+        LookupInsertIfNotFound,
         Delete
     }
 }

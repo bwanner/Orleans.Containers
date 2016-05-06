@@ -2,6 +2,7 @@
 
 namespace Orleans.Collections
 {
+    [Serializable]
     public abstract class ObjectRemoteValueBase<T> : IObjectRemoteValue<T>
     {
 
@@ -12,29 +13,35 @@ namespace Orleans.Collections
 
         public T Retrieve(ILocalReceiveContext resolveContext, ReceiveAction receiveAction)
         {
-            // TODO add support for multiple instances of the same object based on Guid.
-            object itemFound = null;
+            bool itemFound = false;
+            T item = default(T);
             if (resolveContext.GuidToLocalObjects.ContainsKey(GlobalIdentifier))
-                itemFound = resolveContext.GuidToLocalObjects[GlobalIdentifier];
-
-            if (receiveAction == ReceiveAction.Lookup && itemFound == null)
-                return default(T);
-
-            else if (receiveAction == ReceiveAction.Insert)
             {
-                itemFound = CreateLocalObject(resolveContext, receiveAction);
-                if (itemFound != null)
-                {
-                    resolveContext.GuidToLocalObjects[GlobalIdentifier] = itemFound;
-                }
+                item = (T) resolveContext.GuidToLocalObjects[GlobalIdentifier];
+                itemFound = true;
             }
-
-            else if (receiveAction == ReceiveAction.Delete)
+            switch (receiveAction)
             {
-                resolveContext.GuidToLocalObjects.Remove(GlobalIdentifier);
+                case ReceiveAction.LookupInsertIfNotFound:
+                    if (!itemFound)
+                    {
+                        item = CreateLocalObject(resolveContext, receiveAction);
+                        if (item != null)
+                        {
+                            resolveContext.GuidToLocalObjects[GlobalIdentifier] = item;
+                        }
+                    }
+                    if (item != null)
+                        return item;
+                    break;
+                case ReceiveAction.Delete:
+                    if(!itemFound)
+                        item = CreateLocalObject(resolveContext, receiveAction);
+                    resolveContext.GuidToLocalObjects.Remove(GlobalIdentifier);
+                    return item;
             }
-
-            return (T) itemFound;
+        
+            return item;
         }
 
         protected abstract T CreateLocalObject(ILocalReceiveContext resolveContext, ReceiveAction receiveAction);
