@@ -19,7 +19,7 @@ namespace Orleans.Streams.Endpoints
         ///     Constructor.
         /// </summary>
         /// <param name="streamProvider">Stream provider to use.</param>
-        public TransactionalStreamListConsumer(IStreamProvider streamProvider) : base(streamProvider)
+        public TransactionalStreamListConsumer(IStreamProvider streamProvider) : base(streamProvider, null)
         {
             Items = new List<T>();
         }

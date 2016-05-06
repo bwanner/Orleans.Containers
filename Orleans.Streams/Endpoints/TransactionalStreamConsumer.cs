@@ -20,9 +20,9 @@ namespace Orleans.Streams.Endpoints
         ///     Constructor.
         /// </summary>
         /// <param name="streamProvider">Stream provider to be used.</param>
-        public TransactionalStreamConsumer(IStreamProvider streamProvider)
+        public TransactionalStreamConsumer(IStreamProvider streamProvider, Func<Task> tearDownFunc = null)
         {
-            MessageDispatcher = new StreamMessageDispatchReceiver(streamProvider);
+            MessageDispatcher = new StreamMessageDispatchReceiver(streamProvider, null, tearDownFunc);
             TransactionReceiver = new StreamTransactionReceiver(MessageDispatcher);
             // ReSharper disable once VirtualMemberCallInConstructor
             SetupMessageDispatcher(MessageDispatcher);
@@ -60,7 +60,7 @@ namespace Orleans.Streams.Endpoints
 
         public virtual async Task TearDown()
         {
-            await MessageDispatcher.IsTearedDown();
+            await MessageDispatcher.TearDown();
             _tearDownExecuted = true;
         }
 
