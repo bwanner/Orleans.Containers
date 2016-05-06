@@ -72,6 +72,37 @@ namespace Orleans.Streams.Linq
 
         #endregion
 
+        #region SelectMany
+
+        public static async Task<StreamProcessorChain<TIn, TOut, TFactory>> SelectMany<TIn, TIntermediate, TOut, TFactory>(
+    this ITransactionalStreamProvider<TIn> source, Expression<Func<TIn, IEnumerable<TIntermediate>>> collectionSelectorFunc, Expression<Func<TIn, TIntermediate, TOut>> resultSelectorFunc,
+    TFactory factory) where TFactory : IStreamProcessorAggregateFactory
+        {
+            var processorAggregate = await factory.CreateSelectMany(collectionSelectorFunc, resultSelectorFunc , await source.GetOutputStreams());
+            var processorChain = new StreamProcessorChainStart<TIn, TOut, TFactory>(processorAggregate, source, factory);
+
+            return processorChain;
+        }
+
+        public static async Task<StreamProcessorChain<TIn, TOut, TFactory>> SelectMany<TOldIn, TIn, TIntermediate, TOut, TFactory>(
+            this StreamProcessorChain<TOldIn, TIn, TFactory> previousNode, Expression<Func<TIn, IEnumerable<TIntermediate>>> collectionSelectorFunc, Expression<Func<TIn, TIntermediate, TOut>> resultSelectorFunc) where TFactory : IStreamProcessorAggregateFactory
+        {
+            var processorAggregate =
+                await previousNode.Factory.CreateSelectMany(collectionSelectorFunc, resultSelectorFunc, await previousNode.Aggregate.GetOutputStreams());
+            var processorChain = new StreamProcessorChain<TIn, TOut, TFactory>(processorAggregate, previousNode);
+
+            return processorChain;
+        }
+
+        public static async Task<StreamProcessorChain<TIn, TOut, TFactory>> SelectMany<TOldIn, TIn, TIntermediate, TOut, TFactory>(
+            this Task<StreamProcessorChain<TOldIn, TIn, TFactory>> previousNodeTask, Expression<Func<TIn, IEnumerable<TIntermediate>>> collectionSelectorFunc, Expression<Func<TIn, TIntermediate, TOut>> resultSelectorFunc) where TFactory : IStreamProcessorAggregateFactory
+        {
+            var previousNode = await previousNodeTask;
+            return await SelectMany(previousNode, collectionSelectorFunc, resultSelectorFunc);
+        }
+
+        #endregion
+
         #region Where
 
         public static async Task<StreamProcessorChain<TIn, TIn, TFactory>> Where<TIn, TFactory>(this ITransactionalStreamProvider<TIn> source, Expression<Func<TIn, bool>> filterFunc,

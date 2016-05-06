@@ -47,5 +47,10 @@ namespace Orleans.Streams
         {
             throw new NotImplementedException();
         }
+
+        public Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelectMany<TIn, TIntermediate, TOut>(Expression<Func<TIn, IEnumerable<TIntermediate>>> collectionSelectorFunc, Expression<Func<TIn, TIntermediate, TOut>> resultSelectorFunc, IList<StreamIdentity> streamIdentities)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
