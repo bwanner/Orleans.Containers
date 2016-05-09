@@ -121,6 +121,7 @@
     </Compile>
     <Compile Include="StreamHelper.cs" />
     <Compile Include="Endpoints\StreamMessageDispatchReceiver.cs" />
+    <Compile Include="StreamProcessorAggregateConfiguration.cs" />
     <Compile Include="TransactionGenerator.cs" />
   </ItemGroup>
   <ItemGroup>

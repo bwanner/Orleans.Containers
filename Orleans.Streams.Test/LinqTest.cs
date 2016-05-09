@@ -133,8 +133,8 @@ namespace Orleans.Streams.Test
             var source = new MultiStreamProvider<int>(_provider, numberOfStreamsPerLevel);
 
             var factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
-            var aggregateOne = await factory.CreateSelect<int, int>(_ => _, await source.GetOutputStreams());
-            var aggregateTwo = await factory.CreateSelect<int, int>(_ => _, await aggregateOne.GetOutputStreams());
+            var aggregateOne = await factory.CreateSelect<int, int>(_ => _, new StreamProcessorAggregateConfiguration(await source.GetOutputStreams()));
+            var aggregateTwo = await factory.CreateSelect<int, int>(_ => _, new StreamProcessorAggregateConfiguration(await aggregateOne.GetOutputStreams()));
             
 
             var firstElement = new StreamProcessorChainStart<int, int, DefaultStreamProcessorAggregateFactory>(aggregateOne, source, new DefaultStreamProcessorAggregateFactory(GrainFactory));

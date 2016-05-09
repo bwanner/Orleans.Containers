@@ -23,32 +23,32 @@ namespace Orleans.Streams
             get { return _grainFactory; }
         }
 
-        public async Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Expression<Func<TIn, TOut>> selectionFunc, IList<StreamIdentity> streamIdentities)
+        public async Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Expression<Func<TIn, TOut>> selectionFunc, StreamProcessorAggregateConfiguration configuration)
         {
             var processorAggregate =_grainFactory.GetGrain<IStreamProcessorSelectAggregate<TIn, TOut>>(Guid.NewGuid());
             
             await processorAggregate.SetFunction(selectionFunc);
-            await processorAggregate.SetInput(streamIdentities);
+            await processorAggregate.SetInput(configuration.InputStreams);
 
             return processorAggregate;
         }
 
-        public async Task<IStreamProcessorAggregate<TIn, TIn>> CreateWhere<TIn>(Expression<Func<TIn, bool>> filterFunc, IList<StreamIdentity> streamIdentities)
+        public async Task<IStreamProcessorAggregate<TIn, TIn>> CreateWhere<TIn>(Expression<Func<TIn, bool>> filterFunc, StreamProcessorAggregateConfiguration configuration)
         {
             var processorAggregate = _grainFactory.GetGrain<IStreamProcessorWhereAggregate<TIn>>(Guid.NewGuid());
 
             await processorAggregate.SetFunction(filterFunc);
-            await processorAggregate.SetInput(streamIdentities);
+            await processorAggregate.SetInput(configuration.InputStreams);
 
             return processorAggregate;
         }
 
-        public Task<IStreamProcessorAggregate<TIn, TOut>> CreateSimpleSelectMany<TIn, TOut>(Expression<Func<TIn, IEnumerable<TOut>>> selectionFunc, IList<StreamIdentity> list)
+        public Task<IStreamProcessorAggregate<TIn, TOut>> CreateSimpleSelectMany<TIn, TOut>(Expression<Func<TIn, IEnumerable<TOut>>> selectionFunc, StreamProcessorAggregateConfiguration configuration)
         {
             throw new NotImplementedException();
         }
 
-        public Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelectMany<TIn, TIntermediate, TOut>(Expression<Func<TIn, IEnumerable<TIntermediate>>> collectionSelectorFunc, Expression<Func<TIn, TIntermediate, TOut>> resultSelectorFunc, IList<StreamIdentity> streamIdentities)
+        public Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelectMany<TIn, TIntermediate, TOut>(Expression<Func<TIn, IEnumerable<TIntermediate>>> collectionSelectorFunc, Expression<Func<TIn, TIntermediate, TOut>> resultSelectorFunc, StreamProcessorAggregateConfiguration configuration)
         {
             throw new NotImplementedException();
         }
