@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Orleans.Collections.Endpoints;
 using Orleans.Collections.Messages;
 using Orleans.Collections.Utilities;
 using Orleans.Streams;

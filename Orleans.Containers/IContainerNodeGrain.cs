@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Orleans.Streams;
+using Orleans.Streams.Stateful;
 
 namespace Orleans.Collections
 {

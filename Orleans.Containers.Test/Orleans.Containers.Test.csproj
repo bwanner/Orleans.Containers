@@ -124,6 +124,10 @@
       <Project>{f1300194-adc9-4569-8ffe-4029e6f80ab1}</Project>
       <Name>Orleans.Containers</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Orleans.Streams.Stateful\Orleans.Streams.Stateful.csproj">
+      <Project>{fe1f1e4b-ef4f-4f82-bc2d-d25f4f588f83}</Project>
+      <Name>Orleans.Streams.Stateful</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Orleans.Streams\Orleans.Streams.csproj">
       <Project>{dfa07001-2ea7-4542-b81f-3e921cd82e0c}</Project>
       <Name>Orleans.Streams</Name>

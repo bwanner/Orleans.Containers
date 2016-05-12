@@ -76,13 +76,21 @@ namespace Orleans.Streams.Test
         [TestMethod]
         public async Task TestTwoLevelWhere()
         {
-            var input = new List<int>() { 5, 213, 23, -21, 23, 99 }.BatchIEnumerable(2).ToList();
-            var output = new List<List<int>>() { new List<int>() { 213 }, new List<int>() { 23 }, new List<int>() { 23, 99 } };
+            var input = new List<int>() { 5, 213, 23, -21, 23, 99 };
+            var output = new List<string>() {  "213", "23", "23", "99" };
 
-            await
-                TestMultiLevelDataPass<int, int>(
-                    async (streamSource, factory) => await streamSource.Where(x => x >= 20, factory).Select(_ => _),
-                    input, output, CollectionAssert.AreEquivalent);
+            var source = new MultiStreamProvider<int>(_provider, numberOutputStreams: 2);
+
+            var query = await source.Where(x => x >= 20, _factory).Select(x => x.ToString());
+            var queryOutputStreams = await query.GetOutputStreams();
+
+            var resultConsumer = new TransactionalStreamListConsumer<string>(_provider);
+            await resultConsumer.SetInput(queryOutputStreams);
+
+            await source.SendItems(input);
+
+            await query.TearDown();
+            await resultConsumer.TearDown();
         }
 
         #endregion

@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Orleans.Streams;
 
-namespace Orleans.Collections
+namespace Orleans.Streams.Stateful
 {
     /// <summary>
     /// The type implementing this interface can write items of type T to consumers.

@@ -10,7 +10,6 @@ namespace Orleans.Collections
         /// <returns></returns>
         Task Clear();
 
-
         /// <summary>
         /// Get number of items.
         /// </summary>

@@ -6,6 +6,7 @@ namespace Orleans.Collections
     public class ContainerElement<T>
     {
         public ContainerElementReference<T> Reference { get; set; }
+
         public T Item { get; set; }
 
         public ContainerElement(ContainerElementReference<T> reference, T item)

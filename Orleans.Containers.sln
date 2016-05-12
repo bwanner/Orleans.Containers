@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orleans.Containers", "Orleans.Containers\Orleans.Containers.csproj", "{F1300194-ADC9-4569-8FFE-4029E6F80AB1}"
 EndProject
@@ -21,6 +21,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestGrains", "TestGrains\TestGrains.csproj", "{CDD8F5F0-29F0-4CC1-802B-671DB70FB156}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orleans.Streams.Test", "Orleans.Streams.Test\Orleans.Streams.Test.csproj", "{D94907E3-3CF0-44A4-80F1-401EFB27EA16}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orleans.Streams.Stateful", "Orleans.Streams.Stateful\Orleans.Streams.Stateful.csproj", "{FE1F1E4B-EF4F-4F82-BC2D-D25F4F588F83}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -52,6 +54,10 @@ Global
 		{D94907E3-3CF0-44A4-80F1-401EFB27EA16}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D94907E3-3CF0-44A4-80F1-401EFB27EA16}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D94907E3-3CF0-44A4-80F1-401EFB27EA16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE1F1E4B-EF4F-4F82-BC2D-D25F4F588F83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE1F1E4B-EF4F-4F82-BC2D-D25F4F588F83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE1F1E4B-EF4F-4F82-BC2D-D25F4F588F83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE1F1E4B-EF4F-4F82-BC2D-D25F4F588F83}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
