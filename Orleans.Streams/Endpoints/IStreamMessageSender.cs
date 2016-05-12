@@ -40,13 +40,6 @@ namespace Orleans.Streams.Endpoints
         Task SendAddItems(IEnumerable<T> items);
 
         /// <summary>
-        ///     Send a UpdateItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        Task SendUpdateItems(IEnumerable<T> items);
-
-        /// <summary>
         ///     Send a RemoveItemMessage for all items.
         /// </summary>
         /// <param name="items">Items to send.</param>
@@ -66,13 +59,6 @@ namespace Orleans.Streams.Endpoints
         /// <param name="items">Items to send.</param>
         /// <returns></returns>
         void EnqueueAddItems(IEnumerable<T> items);
-
-        /// <summary>
-        ///     Enqueue a UpdateItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        void EnqueueUpdateItems(IEnumerable<T> items);
 
         /// <summary>
         ///     Enqueue a RemoveItemMessage for all items.

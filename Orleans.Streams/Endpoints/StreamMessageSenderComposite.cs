@@ -18,7 +18,7 @@ namespace Orleans.Streams.Endpoints
         /// </summary>
         protected List<StreamMessageSender<T>> Senders;
 
-        private IStreamProvider _provider;
+        private readonly IStreamProvider _provider;
 
         /// <summary>
         /// Constructor.
@@ -99,17 +99,6 @@ namespace Orleans.Streams.Endpoints
         }
 
         /// <summary>
-        /// Send a UpdateItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public async Task SendUpdateItems(IEnumerable<T> items)
-        {
-            var split = Senders.SplitEquallyBetweenSenders(items);
-            await Task.WhenAll(split.Select(tuple => tuple.Item1.SendUpdateItems(tuple.Item2)));
-        }
-
-        /// <summary>
         /// Send a RemoveItemMessage for all items.
         /// </summary>
         /// <param name="items">Items to send.</param>
@@ -141,15 +130,6 @@ namespace Orleans.Streams.Endpoints
             foreach (var tuple in split)
             {
                 tuple.Item1.EnqueueAddItems(tuple.Item2);
-            }
-        }
-
-        public void EnqueueUpdateItems(IEnumerable<T> items)
-        {
-            var split = Senders.SplitEquallyBetweenSenders(items);
-            foreach (var tuple in split)
-            {
-                tuple.Item1.EnqueueUpdateItems(tuple.Item2);
             }
         }
 

@@ -1,50 +1,66 @@
 ﻿using System;
+using Orleans.Collections;
 
-namespace Orleans.Collections
+namespace Orleans.Streams.Stateful
 {
+    /// <summary>
+    /// Abstract class providing lookup for a remote object.
+    /// </summary>
+    /// <typeparam name="T">Type of the remote object.</typeparam>
     [Serializable]
     public abstract class ObjectRemoteValueBase<T> : IObjectRemoteValue<T>
     {
-
-        object IObjectRemoteValue.Retrieve(ILocalReceiveContext resolveContext, ReceiveAction receiveAction)
+        /// <summary>
+        /// Retrieve the local object.
+        /// </summary>
+        /// <param name="receiveContext">Context to find the local object by an identifier.</param>
+        /// <param name="localContextAction">How to modify the receiveContext once the object was retrieved.</param>
+        /// <returns>Local object.</returns>
+        object IObjectRemoteValue.Retrieve(ILocalReceiveContext receiveContext, LocalContextAction localContextAction)
         {
-            return Retrieve(resolveContext, receiveAction);
+            return Retrieve(receiveContext, localContextAction);
         }
 
-        public T Retrieve(ILocalReceiveContext resolveContext, ReceiveAction receiveAction)
+        /// <summary>
+        /// Retrieve the local object.
+        /// </summary>
+        /// <param name="receiveContext">Context to find the local object by an identifier.</param>
+        /// <param name="localContextAction">How to modify the resolveContext once the object was retrieved.</param>
+        /// <returns>Local object.</returns>
+        public T Retrieve(ILocalReceiveContext receiveContext, LocalContextAction localContextAction)
         {
             bool itemFound = false;
             T item = default(T);
-            if (resolveContext.GuidToLocalObjects.ContainsKey(GlobalIdentifier))
+            if (receiveContext.GuidToLocalObjects.ContainsKey(GlobalIdentifier))
             {
-                item = (T) resolveContext.GuidToLocalObjects[GlobalIdentifier];
+                item = (T) receiveContext.GuidToLocalObjects[GlobalIdentifier];
                 itemFound = true;
             }
-            switch (receiveAction)
+            switch (localContextAction)
             {
-                case ReceiveAction.LookupInsertIfNotFound:
+                case LocalContextAction.LookupInsertIfNotFound:
                     if (!itemFound)
                     {
-                        item = CreateLocalObject(resolveContext, receiveAction);
+                        item = CreateLocalObject(receiveContext, localContextAction);
                         if (item != null)
                         {
-                            resolveContext.GuidToLocalObjects[GlobalIdentifier] = item;
+                            receiveContext.GuidToLocalObjects[GlobalIdentifier] = item;
                         }
                     }
                     if (item != null)
                         return item;
                     break;
-                case ReceiveAction.Delete:
+                case LocalContextAction.Delete:
                     if(!itemFound)
-                        item = CreateLocalObject(resolveContext, receiveAction);
-                    resolveContext.GuidToLocalObjects.Remove(GlobalIdentifier);
+                        item = CreateLocalObject(receiveContext, localContextAction);
+                    receiveContext.GuidToLocalObjects.Remove(GlobalIdentifier);
                     return item;
             }
         
             return item;
         }
 
-        protected abstract T CreateLocalObject(ILocalReceiveContext resolveContext, ReceiveAction receiveAction);
+        protected abstract T CreateLocalObject(ILocalReceiveContext resolveContext, LocalContextAction localContextAction);
 
         /// <summary>
         /// Can be used to compare objects within a grain scope.
