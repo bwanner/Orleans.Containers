@@ -76,24 +76,25 @@ namespace Orleans.Streams.Stateful.Endpoints
 
         private Task ProcessModelCollectionChangedMessage(RemoteCollectionChangedMessage message)
         {
-            var sourceItem = (IList)message.ElementAffected.Retrieve(ReceiveContext, LocalContextAction.LookupInsertIfNotFound);
+            var sourceItem = message.ElementAffected.Retrieve(ReceiveContext, LocalContextAction.LookupInsertIfNotFound);
+            var sourceList = (dynamic) sourceItem;
 
             switch (message.Action)
             {
                 case NotifyCollectionChangedAction.Add:
                     foreach (var itemToAdd in message.Elements)
                     {
-                        sourceItem.Add(itemToAdd.Retrieve(ReceiveContext, LocalContextAction.LookupInsertIfNotFound));
+                        sourceList.Add(itemToAdd.Retrieve(ReceiveContext, LocalContextAction.LookupInsertIfNotFound));
                     }
                     break;
                 case NotifyCollectionChangedAction.Remove:
                     foreach (var itemToRemove in message.Elements)
                     {
-                        sourceItem.Remove(itemToRemove.Retrieve(ReceiveContext, LocalContextAction.Delete));
+                        sourceList.Remove(itemToRemove.Retrieve(ReceiveContext, LocalContextAction.Delete));
                     }
                     break;
                 case NotifyCollectionChangedAction.Reset:
-                    sourceItem.Clear();
+                    sourceList.Clear();
                     break;
                 default:
                     throw new NotImplementedException();

@@ -58,7 +58,7 @@ namespace CollectionHost
 
             // Simple query using stream provider and consumer.
 
-            var simpleProvider = new MultiStreamProvider<int>(provider, numberOutputStreams: 10);
+            var simpleProvider = new StreamMessageSenderComposite<int>(provider, numberOfOutputStreams: 10);
 
             var queryNumbersLessThan1000 = await simpleProvider.Where(x => x < 1000, aggregateFactory);
             
@@ -66,9 +66,7 @@ namespace CollectionHost
             await simpleResultConsumer.SetInput(await queryNumbersLessThan1000.GetOutputStreams());
 
             var rand = new Random(123);
-            var transaction1 = await simpleProvider.SendItems(Enumerable.Repeat(2000, 10000).Select(x => rand.Next(x)).ToList());
-
-            await simpleResultConsumer.TransactionComplete(transaction1);
+            await simpleProvider.SendItems(Enumerable.Repeat(2000, 10000).Select(x => rand.Next(x)).ToList());
             
             Console.WriteLine("#Items less than 1000: {0}", simpleResultConsumer.Items.Count);
         }

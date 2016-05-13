@@ -79,7 +79,7 @@ namespace Orleans.Streams.Test
             var input = new List<int>() { 5, 213, 23, -21, 23, 99 };
             var output = new List<string>() {  "213", "23", "23", "99" };
 
-            var source = new MultiStreamProvider<int>(_provider, numberOutputStreams: 2);
+            var source = new StreamMessageSenderComposite<int>(_provider, 2);
 
             var query = await source.Where(x => x >= 20, _factory).Select(x => x.ToString());
             var queryOutputStreams = await query.GetOutputStreams();
@@ -106,7 +106,7 @@ namespace Orleans.Streams.Test
         [TestMethod]
         public async Task TestTearDownStreamBroken()
         {
-            var source = new MultiStreamProvider<int>(_provider, 2);
+            var source = new StreamMessageSenderComposite<int>(_provider, 2);
 
             var factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
             var query = await source.Select(x => x, factory);
@@ -138,7 +138,7 @@ namespace Orleans.Streams.Test
             int numberOfStreamsPerLevel = 2;
 
 
-            var source = new MultiStreamProvider<int>(_provider, numberOfStreamsPerLevel);
+            var source = new StreamMessageSenderComposite<int>(_provider, numberOfStreamsPerLevel);
 
             var factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
             var aggregateOne = await factory.CreateSelect<int, int>(_ => _, new StreamProcessorAggregateConfiguration(await source.GetOutputStreams()));
@@ -158,7 +158,7 @@ namespace Orleans.Streams.Test
         }
 
         private async Task TestMultiLevelDataPass<TIn, TOut>(
-            Func<MultiStreamProvider<TIn>, DefaultStreamProcessorAggregateFactory, Task<IStreamProcessorChain<TOut, DefaultStreamProcessorAggregateFactory>>>
+            Func<StreamMessageSenderComposite<TIn>, DefaultStreamProcessorAggregateFactory, Task<IStreamProcessorChain<TOut, DefaultStreamProcessorAggregateFactory>>>
                 createStreamProcessingChainFunc, List<List<TIn>> inputChunks, List<List<TOut>> outputChunks,
             Action<List<TOut>, List<TOut>> resultAssertion)
         {
@@ -167,7 +167,7 @@ namespace Orleans.Streams.Test
                 throw new ArgumentException();
             }
 
-            var source = new MultiStreamProvider<TIn>(_provider, 2);
+            var source = new StreamMessageSenderComposite<TIn>(_provider, 2);
 
             var query = await createStreamProcessingChainFunc(source, _factory);
             var queryOutputStreams = await query.GetOutputStreams();

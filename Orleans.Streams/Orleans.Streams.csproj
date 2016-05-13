@@ -78,7 +78,6 @@
     <Compile Include="Endpoints\IStreamMessageSender.cs" />
     <Compile Include="Endpoints\TransactionalStreamListConsumer.cs" />
     <Compile Include="Endpoints\StreamTransactionReceiver.cs" />
-    <Compile Include="Endpoints\MultiStreamProvider.cs" />
     <Compile Include="Endpoints\TransactionalStreamConsumer.cs" />
     <Compile Include="Endpoints\InternalStreamMessageSender.cs" />
     <Compile Include="Endpoints\StreamMessageSenderComposite.cs" />

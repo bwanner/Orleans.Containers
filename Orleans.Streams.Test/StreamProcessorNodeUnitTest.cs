@@ -36,15 +36,15 @@ namespace Orleans.Collections.Test
             await processor.SetFunction(new SerializableFunc<int, int>(_ => _));
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
-            var testProvider = new MultiStreamProvider<int>(provider, 1);
+            var testProvider = new StreamMessageSenderComposite<int>(provider, 1);
             await processor.SubscribeToStreams(await testProvider.GetOutputStreams());
 
             var testConsumer = new TransactionalStreamListConsumer<int>(provider);
 
             await SubscribeConsumer(processor, testConsumer);
 
-            var tid = await testProvider.SendItems(new List<int>());
-            await testConsumer.TransactionComplete(tid);
+            await testProvider.SendItems(new List<int>());
+            Assert.AreEqual(0, testConsumer.Items.Count);
 
             await testProvider.TearDown();
         }
@@ -59,14 +59,13 @@ namespace Orleans.Collections.Test
             var itemsToSend = new List<int> {-1, 5, 30};
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
-            var testProvider = new MultiStreamProvider<int>(provider, 1);
+            var testProvider = new StreamMessageSenderComposite<int>(provider, 1);
             await processor.SubscribeToStreams(await testProvider.GetOutputStreams());
 
             var testConsumer = new TransactionalStreamListConsumer<int>(provider);
             await SubscribeConsumer(processor, testConsumer);
 
-            var tid = await testProvider.SendItems(itemsToSend);
-            await testConsumer.TransactionComplete(tid);
+            await testProvider.SendItems(itemsToSend);
 
             CollectionAssert.AreEquivalent(itemsToSend, testConsumer.Items);
 
@@ -87,7 +86,7 @@ namespace Orleans.Collections.Test
             var itemsToSend = new List<int> {1, 5, 32, -12};
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
-            var inputAggregate = new MultiStreamProvider<int>(provider, 2);
+            var inputAggregate = new StreamMessageSenderComposite<int>(provider, 2);
 
             await aggregate.SetInput(await inputAggregate.GetOutputStreams());
 
@@ -96,8 +95,7 @@ namespace Orleans.Collections.Test
             var consumerAggregate = new TestTransactionalTransactionalStreamConsumerAggregate<int>(provider);
             await consumerAggregate.SetInput(await aggregate.GetOutputStreams());
 
-            var tid = await inputAggregate.SendItems(itemsToSend);
-            await consumerAggregate.TransactionComplete(tid);
+            await inputAggregate.SendItems(itemsToSend);
 
             var resultItems = consumerAggregate.Items;
 
@@ -123,7 +121,7 @@ namespace Orleans.Collections.Test
             var itemsToSend = new List<int> {1, 5, 32, -12};
 
             var provider = GrainClient.GetStreamProvider(StreamProvider);
-            var inputAggregate = new MultiStreamProvider<int>(provider, 2); ;
+            var inputAggregate = new StreamMessageSenderComposite<int>(provider, 2); ;
 
             await aggregate.SetInput(await inputAggregate.GetOutputStreams());
 
@@ -141,9 +139,11 @@ namespace Orleans.Collections.Test
 
             await inputAggregate.TearDown();
 
-            var tid = await inputAggregate.SendItems(itemsToSend);
+            var tId = Guid.NewGuid();
+            await inputAggregate.StartTransaction(tId);
+            await inputAggregate.EndTransaction(tId);
 
-            var taskCompleted = consumerAggregate.TransactionComplete(tid).Wait(TimeSpan.FromSeconds(5));
+            var taskCompleted = consumerAggregate.TransactionComplete(tId).Wait(TimeSpan.FromSeconds(5));
 
             Assert.IsFalse(taskCompleted);
 
