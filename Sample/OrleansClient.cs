@@ -9,6 +9,7 @@ using Orleans.Collections.Utilities;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;
 using Orleans.Streams.Linq;
+using Orleans.Streams.Messages;
 using TestGrains;
 using static Orleans.GrainClient;
 
@@ -66,7 +67,7 @@ namespace CollectionHost
             await simpleResultConsumer.SetInput(await queryNumbersLessThan1000.GetOutputStreams());
 
             var rand = new Random(123);
-            await simpleProvider.SendItems(Enumerable.Repeat(2000, 10000).Select(x => rand.Next(x)).ToList());
+            await simpleProvider.SendMessage(new ItemMessage<int>(Enumerable.Repeat(2000, 10000).Select(x => rand.Next(x)).ToList()));
             
             Console.WriteLine("#Items less than 1000: {0}", simpleResultConsumer.Items.Count);
         }

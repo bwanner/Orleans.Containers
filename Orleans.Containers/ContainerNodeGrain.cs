@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Orleans.Collections.Messages;
 using Orleans.Collections.Utilities;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;
@@ -38,7 +37,7 @@ namespace Orleans.Collections
             var transactionalSender = SetupSenderStream(streamIdentity);
             await transactionalSender.StartTransaction(transactionId);
             var elements = Elements.ToList();
-            await transactionalSender.SendAddItems(elements);
+            await OutputProducer.SendMessage(new ItemMessage<ContainerElement<T>>(elements));
             await transactionalSender.EndTransaction(transactionId);
             await transactionalSender.TearDown();
             return transactionId;
@@ -69,7 +68,7 @@ namespace Orleans.Collections
         {
             var tId = TransactionGenerator.GenerateTransactionId(transactionId);
             await OutputProducer.StartTransaction(tId);
-            await OutputProducer.SendAddItems(Elements);
+            await OutputProducer.SendMessage(new ItemMessage<ContainerElement<T>>(Elements));
             await OutputProducer.EndTransaction(tId);
 
             return tId;
@@ -96,7 +95,6 @@ namespace Orleans.Collections
                 }
             }
 
-            await OutputProducer.FlushQueue();
         }
 
         public Task<IList<object>> ExecuteAsync(Func<T, Task<object>> func)
@@ -108,7 +106,6 @@ namespace Orleans.Collections
         {
             var results = Elements.Elements.Select(item => func(item, state)).ToList();
             var resultSet = await Task.WhenAll(results);
-            await OutputProducer.FlushQueue();
             return new List<object>(resultSet);
         }
 
@@ -121,7 +118,6 @@ namespace Orleans.Collections
         {
             var curItem = Elements.GetElement(reference);
             var result = await func(curItem, state);
-            await OutputProducer.FlushQueue();
             return result;
         }
 
@@ -145,7 +141,6 @@ namespace Orleans.Collections
                 }
             }
 
-            await OutputProducer.FlushQueue();
         }
 
         public Task<IList<object>> ExecuteSync(Func<T, object> func)
@@ -162,14 +157,12 @@ namespace Orleans.Collections
             var curItem = Elements.GetElement(reference);
             var result = func(curItem, state);
 
-            await OutputProducer.FlushQueue();
             return result;
         }
 
         public async Task<IList<object>> ExecuteSync(Func<T, object, object> func, object state)
         {
             IList<object> results = Elements.Elements.Select(item => func(item, state)).ToList();
-            await OutputProducer.FlushQueue();
             return results;
         }
 
@@ -210,12 +203,12 @@ namespace Orleans.Collections
             OutputProducer = new StreamMessageSender<ContainerElement<T>>(GetStreamProvider(StreamProviderName), this.GetPrimaryKey());
             StreamMessageDispatchReceiver = new StreamMessageDispatchReceiver(GetStreamProvider(StreamProviderName), GetLogger(), TearDown);
             _streamTransactionReceiver = new StreamTransactionReceiver(StreamMessageDispatchReceiver);
-            StreamMessageDispatchReceiver.Register<ItemAddMessage<T>>(ProcessItemMessage);
+            StreamMessageDispatchReceiver.Register<ItemMessage<T>>(ProcessItemMessage);
             Elements = new ContainerElementList<T>(this.GetPrimaryKey(), this, this.AsReference<IContainerNodeGrain<T>>());
             await base.OnActivateAsync();
         }
 
-        protected virtual async Task ProcessItemMessage(ItemAddMessage<T> message)
+        protected virtual async Task ProcessItemMessage(ItemMessage<T> message)
         {
             await AddRange(message.Items);
         }

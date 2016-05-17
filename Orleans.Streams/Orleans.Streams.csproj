@@ -76,12 +76,15 @@
   <ItemGroup>
     <Compile Include="DefaultStreamProcessorAggregateFactory.cs" />
     <Compile Include="Endpoints\IStreamMessageSender.cs" />
+    <Compile Include="Endpoints\IStreamMessageSenderComposite.cs" />
     <Compile Include="Endpoints\TransactionalStreamListConsumer.cs" />
     <Compile Include="Endpoints\StreamTransactionReceiver.cs" />
     <Compile Include="Endpoints\TransactionalStreamConsumer.cs" />
     <Compile Include="Endpoints\InternalStreamMessageSender.cs" />
     <Compile Include="Endpoints\StreamMessageSenderComposite.cs" />
+    <Compile Include="IBufferingStreamMessageSender.cs" />
     <Compile Include="ITransactionalMultiplexingStreamProvider.cs" />
+    <Compile Include="Messages\CombinedMessage.cs" />
     <Compile Include="Messages\FlushMessage.cs" />
     <Compile Include="Messages\IStreamMessage.cs" />
     <Compile Include="Messages\IStreamMessageVisitor.cs" />
@@ -102,10 +105,7 @@
     <Compile Include="Linq\Nodes\StreamProcessorSelectNodeGrain.cs" />
     <Compile Include="Linq\Nodes\StreamProcessorWhereNodeGrain.cs" />
     <Compile Include="Linq\StreamProcessorChain.cs" />
-    <Compile Include="Messages\ItemAddMessage.cs" />
     <Compile Include="Messages\ItemMessage.cs" />
-    <Compile Include="Messages\ItemRemoveMessage.cs" />
-    <Compile Include="Messages\ItemUpdateMessage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\orleans.codegen.cs" />
     <Compile Include="Linq\Aggregates\StreamProcessorSelectAggregate.cs" />

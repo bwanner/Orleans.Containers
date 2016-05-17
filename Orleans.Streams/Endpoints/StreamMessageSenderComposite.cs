@@ -11,7 +11,7 @@ namespace Orleans.Streams.Endpoints
     /// Sends messages via multiple children output streams.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class StreamMessageSenderComposite<T> : IStreamMessageSender<T>
+    public class StreamMessageSenderComposite<T> : IStreamMessageSenderComposite<T>
     {
         /// <summary>
         /// Senders that are used for sending. Each of them is mapped to one output stream.
@@ -56,61 +56,8 @@ namespace Orleans.Streams.Endpoints
         }
 
 
-        /// <summary>
-        /// Send items via this strem.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public async Task SendItems(IEnumerable<T> items)
-        {
-            var split = Senders.SplitEquallyBetweenSenders(items);
-            await Task.WhenAll(split.Select(tuple => tuple.Item1.SendItems(tuple.Item2)));
-        }
-
-        /// <summary>
-        /// Start a transaction.
-        /// </summary>
-        /// <param name="transactionId">Transaction identifier.</param>
-        /// <returns></returns>
-        public async Task StartTransaction(Guid transactionId)
-        {
-            await Task.WhenAll(Senders.Select(s => s.StartTransaction(transactionId)));
-        }
-
-        /// <summary>
-        /// End a transaction.
-        /// </summary>
-        /// <param name="transactionId">Transaction identifier.</param>
-        /// <returns></returns>
-        public async Task EndTransaction(Guid transactionId)
-        {
-            await Task.WhenAll(Senders.Select(s => s.EndTransaction(transactionId)));
-        }
-
-        /// <summary>
-        /// Send a AddItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public async Task SendAddItems(IEnumerable<T> items)
-        {
-            var split = Senders.SplitEquallyBetweenSenders(items);
-            await Task.WhenAll(split.Select(tuple => tuple.Item1.SendAddItems(tuple.Item2)));
-        }
-
-        /// <summary>
-        /// Send a RemoveItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public async Task SendRemoveItems(IEnumerable<T> items)
-        {
-            var split = Senders.SplitEquallyBetweenSenders(items);
-            await Task.WhenAll(split.Select(tuple => tuple.Item1.SendRemoveItems(tuple.Item2)));
-        }
-
-        /// <summary>
-        ///     Sends a generic message.
+         /// <summary>
+        ///     Sends a generic message via all output channels.
         /// </summary>
         /// <param name="message">Message to send.</param>
         /// <returns></returns>
@@ -120,50 +67,38 @@ namespace Orleans.Streams.Endpoints
         }
 
         /// <summary>
-        /// Enqueue a AddItemMessage for all items.
+        /// Sends a message through all available outputs.
         /// </summary>
-        /// <param name="items">Items to send.</param>
+        /// <param name="message"></param>
         /// <returns></returns>
-        public void EnqueueAddItems(IEnumerable<T> items)
+        public async Task SendMessageThroughAllOutputs(IStreamMessage message)
         {
-            var split = Senders.SplitEquallyBetweenSenders(items);
-            foreach (var tuple in split)
-            {
-                tuple.Item1.EnqueueAddItems(tuple.Item2);
-            }
+            await Task.WhenAll(Senders.Select(s => s.SendMessage(message)));
         }
 
-        /// <summary>
-        /// Enqueue a RemoveItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public void EnqueueRemoveItems(IEnumerable<T> items)
+        public async Task StartTransaction(Guid transactionId)
         {
-            var split = Senders.SplitEquallyBetweenSenders(items);
-            foreach (var tuple in split)
-            {
-                tuple.Item1.EnqueueRemoveItems(tuple.Item2);
-            }
+            await Task.WhenAll(Senders.Select(s => s.StartTransaction(transactionId)));
         }
 
-        /// <summary>
-        /// Enqeue a generic message.
-        /// </summary>
-        /// <returns></returns>
-        public void EnqueueMessage(IStreamMessage message)
+        public async Task EndTransaction(Guid transactionId)
         {
-            Senders.First().EnqueueMessage(message);
+            await Task.WhenAll(Senders.Select(s => s.EndTransaction(transactionId)));
         }
 
-        /// <summary>
-        /// Send all messages and empty the queue.
-        /// </summary>
-        /// <returns></returns>
-        public async Task FlushQueue()
-        {
-            await Task.WhenAll(Senders.Select(s => s.FlushQueue()));
-        }
+        ///// <summary>
+        ///// Enqueue a AddItemMessage for all items.
+        ///// </summary>
+        ///// <param name="items">Items to send.</param>
+        ///// <returns></returns>
+        //public void EnqueueAddItems(IEnumerable<T> items)
+        //{
+        //    var split = Senders.SplitEquallyBetweenSenders(items);
+        //    foreach (var tuple in split)
+        //    {
+        //        tuple.Item1.EnqueueAddItems(tuple.Item2);
+        //    }
+        //}
 
         /// <summary>
         /// Get identities of the provided output streams.
@@ -194,6 +129,36 @@ namespace Orleans.Streams.Endpoints
             var sendersTearedDown = await Task.WhenAll(Senders.Select(s => s.IsTearedDown()));
 
             return sendersTearedDown.All(tearedDown => tearedDown);
+        }
+
+        public int FlushQueueSize { get; set; } = 12;
+
+        public void EnqueueMessageForSending(IStreamMessage streamMessage)
+        {
+            //var split = Senders.SplitEquallyBetweenSenders(items);
+            //foreach (var tuple in split)
+            //{
+            //    tuple.Item1.EnqueueAddItems(tuple.Item2);
+            //}
+            throw new NotImplementedException();
+        }
+
+        public void EnqueueMessageBroadcast(IStreamMessage streamMessage)
+        {
+            foreach (var sender in Senders)
+            {
+                sender.EnqueueMessageBroadcast(streamMessage);
+            }
+        }
+
+        public void EnqueueMessage(IStreamMessage streamMessage)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task AwaitSendingComplete()
+        {
+            await Task.WhenAll(Senders.Select(s => s.AwaitSendingComplete()));
         }
     }
 }

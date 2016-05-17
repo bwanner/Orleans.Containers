@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Orleans.Collections.Messages;
-using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
 {

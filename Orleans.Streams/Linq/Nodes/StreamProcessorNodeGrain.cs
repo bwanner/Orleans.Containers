@@ -74,7 +74,6 @@ namespace Orleans.Streams.Linq.Nodes
 
         private async Task ProcessFlushMessage(FlushMessage message)
         {
-            await StreamSender.FlushQueue();
             await StreamSender.SendMessage(message);
         }
     }

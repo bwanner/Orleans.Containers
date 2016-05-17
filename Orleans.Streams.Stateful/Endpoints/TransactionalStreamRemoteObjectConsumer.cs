@@ -77,6 +77,9 @@ namespace Orleans.Streams.Stateful.Endpoints
         private Task ProcessModelCollectionChangedMessage(RemoteCollectionChangedMessage message)
         {
             var sourceItem = message.ElementAffected.Retrieve(ReceiveContext, LocalContextAction.LookupInsertIfNotFound);
+            if (sourceItem == null)
+                throw new NullReferenceException("Matching collection cannot be retrieved");
+
             var sourceList = (dynamic) sourceItem;
 
             switch (message.Action)

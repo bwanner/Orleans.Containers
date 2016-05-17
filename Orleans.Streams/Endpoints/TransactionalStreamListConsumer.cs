@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Orleans.Collections.Messages;
+using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
 {
@@ -27,10 +27,10 @@ namespace Orleans.Streams.Endpoints
         protected override void SetupMessageDispatcher(StreamMessageDispatchReceiver dispatcher)
         {
             base.SetupMessageDispatcher(dispatcher);
-            dispatcher.Register<ItemAddMessage<T>>(ProcessItemAddMessage);
+            dispatcher.Register<ItemMessage<T>>(ProcessItemAddMessage);
         }
 
-        private Task ProcessItemAddMessage(ItemAddMessage<T> message)
+        private Task ProcessItemAddMessage(ItemMessage<T> message)
         {
             Items.AddRange(message.Items);
             return TaskDone.Done;

@@ -7,6 +7,8 @@ namespace Orleans.Streams.Messages
     /// </summary>
     public interface IStreamMessage
     {
+        // TODO add support
+        //bool IsMergeable { get; }
     }
 
 }

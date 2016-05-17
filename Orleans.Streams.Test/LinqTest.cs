@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Orleans.Runtime;
 using Orleans.Streams.Endpoints;
 using Orleans.Streams.Linq;
+using Orleans.Streams.Messages;
 using Orleans.Streams.Test.Helpers;
 using Orleans.TestingHost;
 
@@ -87,7 +88,7 @@ namespace Orleans.Streams.Test
             var resultConsumer = new TransactionalStreamListConsumer<string>(_provider);
             await resultConsumer.SetInput(queryOutputStreams);
 
-            await source.SendItems(input);
+            await source.SendMessage(new ItemMessage<int>(input));
 
             await query.TearDown();
             await resultConsumer.TearDown();
@@ -125,7 +126,7 @@ namespace Orleans.Streams.Test
             await resultConsumer.TearDown();
             Assert.IsTrue(await resultConsumer.AllConsumersTearDownCalled());
 
-            await source.SendItems(new List<int>() {2, 3});
+            await source.SendMessage(new ItemMessage<int>(new List<int>() {2, 3}));
 
             Assert.AreEqual(0, resultConsumer.Items.Count);
             Assert.IsTrue(await resultConsumer.AllConsumersTearDownCalled());
@@ -182,7 +183,7 @@ namespace Orleans.Streams.Test
             {
                 var input = inputChunks[i];
                 var expectedOutput = outputChunks[i];
-                await source.SendItems(input);
+                await source.SendMessage(new ItemMessage<TIn>(input));
                 resultAssertion(expectedOutput, resultConsumer.Items);
                 resultConsumer.Items.Clear();
             }

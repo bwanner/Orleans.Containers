@@ -59,16 +59,6 @@ namespace Orleans.Streams.Endpoints
             await _messageStream.OnNextAsync(message);
         }
 
-        public async Task StartTransaction(Guid transactionId)
-        {
-            await SendMessage(new TransactionMessage {State = TransactionState.Start, TransactionId = transactionId});
-        }
-
-        public async Task EndTransaction(Guid transactionId)
-        {
-            await SendMessage(new TransactionMessage {State = TransactionState.End, TransactionId = transactionId});
-        }
-
         public async Task SendMessagesFromQueue()
         {
             while (_queue.Count > 0)

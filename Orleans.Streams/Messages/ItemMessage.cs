@@ -10,14 +10,14 @@ namespace Orleans.Streams.Messages
     /// </summary>
     /// <typeparam name="T">Type of items to transfer.</typeparam>
     [Serializable]
-    public abstract class ItemMessage<T> : IStreamMessage
+    public class ItemMessage<T> : IStreamMessage
     {
         /// <summary>
         /// Items contained in message.
         /// </summary>
         public IList<T> Items { get; private set; }
 
-        protected ItemMessage(IEnumerable<T> items)
+        public ItemMessage(IEnumerable<T> items)
         {
             Items = items.ToList();
         }

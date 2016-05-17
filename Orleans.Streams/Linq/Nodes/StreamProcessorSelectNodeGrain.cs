@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Orleans.Collections.Messages;
+using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Linq.Nodes
 {
@@ -26,13 +26,13 @@ namespace Orleans.Streams.Linq.Nodes
         protected override void RegisterMessages()
         {
             base.RegisterMessages();
-            StreamConsumer.MessageDispatcher.Register<ItemAddMessage<TIn>>(ProcessItemAddMessage);
+            StreamConsumer.MessageDispatcher.Register<ItemMessage<TIn>>(ProcessItemAddMessage);
         }
 
-        protected async Task ProcessItemAddMessage(ItemAddMessage<TIn> itemMessage)
+        protected async Task ProcessItemAddMessage(ItemMessage<TIn> itemMessage)
         {
             var result = itemMessage.Items.Select(_function).ToList();
-            await StreamSender.SendItems(result);
+            await StreamSender.SendMessage(new ItemMessage<TOut>(result));
         }
     }
 }

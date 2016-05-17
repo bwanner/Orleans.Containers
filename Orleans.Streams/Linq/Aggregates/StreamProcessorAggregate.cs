@@ -27,12 +27,9 @@ namespace Orleans.Streams.Linq.Aggregates
         public async Task SetInput(IList<StreamIdentity> streamIdentities)
         {
             ProcessorNodes = new List<TNode>();
-            foreach (var identity in streamIdentities)
-            {
-                var node = await InitializeNode(identity);
 
-                ProcessorNodes.Add(node);
-            }
+            var createdNodes = await Task.WhenAll(streamIdentities.Select(InitializeNode));
+            ProcessorNodes.AddRange(createdNodes);
         }
 
         /// <summary>

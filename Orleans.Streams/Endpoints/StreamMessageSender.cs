@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using Orleans.Collections.Messages;
 using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Endpoints
@@ -9,13 +9,11 @@ namespace Orleans.Streams.Endpoints
     /// <summary>
     ///     Makes default stream operations available via its interface.
     /// </summary>
-    /// <typeparam name="T">Data type transmitted via the stream.</typeparam>
-    public class StreamMessageSender<T> : IStreamMessageSender<T>
+    public class StreamMessageSender<T> : IStreamMessageSender<T>, IBufferingStreamMessageSender
     {
-        private readonly List<T> _addItems = new List<T>();
-        private readonly List<T> _removeItems = new List<T>();
         private readonly InternalStreamMessageSender _sender;
-        private readonly List<T> _updateItems = new List<T>();
+        private Queue<IStreamMessage> _messages;
+        private List<Task> _awaitedSends;
 
         /// <summary>
         /// Constructor.
@@ -25,6 +23,8 @@ namespace Orleans.Streams.Endpoints
         public StreamMessageSender(IStreamProvider provider, Guid guid = default(Guid))
         {
             _sender = new InternalStreamMessageSender(provider, guid);
+            _messages = new Queue<IStreamMessage>();
+            _awaitedSends = new List<Task>();
         }
 
         /// <summary>
@@ -35,126 +35,19 @@ namespace Orleans.Streams.Endpoints
         public StreamMessageSender(IStreamProvider provider, StreamIdentity targetStream)
         {
             _sender = new InternalStreamMessageSender(provider, targetStream);
+            _messages = new Queue<IStreamMessage>();
+            _awaitedSends = new List<Task>();
         }
 
-        /// <summary>
-        /// End a transaction.
-        /// </summary>
-        /// <param name="transactionId">Transaction identifier.</param>
-        /// <returns></returns>
-        public async Task EndTransaction(Guid transactionId)
-        {
-            await _sender.EndTransaction(transactionId);
-        }
 
-        /// <summary>
-        /// Enqueue a AddItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public void EnqueueAddItems(IEnumerable<T> items)
-        {
-            _addItems.AddRange(items);
-        }
-
-        /// <summary>
-        /// Enqeue a generic message.
-        /// </summary>
-        /// <returns></returns>
-        public void EnqueueMessage(IStreamMessage message)
-        {
-            _sender.AddToMessageQueue(message);
-        }
-
-        /// <summary>
-        /// Enqueue a RemoveItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public void EnqueueRemoveItems(IEnumerable<T> items)
-        {
-            _removeItems.AddRange(items);
-        }
-
-        /// <summary>
-        /// Enqueue a UpdateItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public void EnqueueUpdateItems(IEnumerable<T> items)
-        {
-            _updateItems.AddRange(items);
-        }
-
-        /// <summary>
-        /// Send all messages and empty the queue.
-        /// </summary>
-        /// <returns></returns>
-        public async Task FlushQueue()
-        {
-            if (_addItems.Count > 0)
-                await _sender.SendMessage(new ItemAddMessage<T>(_addItems));
-            if (_updateItems.Count > 0)
-                await _sender.SendMessage(new ItemUpdateMessage<T>(_updateItems));
-            if (_removeItems.Count > 0)
-                await _sender.SendMessage(new ItemRemoveMessage<T>(_removeItems));
-
-            _addItems.Clear();
-            _updateItems.Clear();
-            _removeItems.Clear();
-
-            await _sender.SendMessagesFromQueue();
-        }
-
-        /// <summary>
-        /// Send a AddItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public async Task SendAddItems(IEnumerable<T> items)
-        {
-            await _sender.SendMessage(new ItemAddMessage<T>(items));
-        }
-
-        /// <summary>
-        /// Send items via this strem.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public async Task SendItems(IEnumerable<T> items)
-        {
-            var message = new ItemAddMessage<T>(items);
-            await Task.WhenAll(_sender.SendMessage(message));
-        }
-
-        /// <summary>
-        /// Send a RemoveItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public async Task SendRemoveItems(IEnumerable<T> items)
-        {
-            await _sender.SendMessage(new ItemRemoveMessage<T>(items));
-        }
-
-        /// <summary>
-        /// Send a UpdateItemMessage for all items.
-        /// </summary>
-        /// <param name="items">Items to send.</param>
-        /// <returns></returns>
-        public async Task SendUpdateItems(IEnumerable<T> items)
-        {
-            await _sender.SendMessage(new ItemUpdateMessage<T>(items));
-        }
-
-        /// <summary>
-        /// Start a transaction.
-        /// </summary>
-        /// <param name="transactionId">Transaction identifier.</param>
-        /// <returns></returns>
         public async Task StartTransaction(Guid transactionId)
         {
-            await _sender.StartTransaction(transactionId);
+            await SendMessage(new TransactionMessage {State = TransactionState.Start, TransactionId = transactionId});
+        }
+
+        public async Task EndTransaction(Guid transactionId)
+        {
+            await SendMessage(new TransactionMessage {State = TransactionState.End, TransactionId = transactionId});
         }
 
         /// <summary>
@@ -192,6 +85,42 @@ namespace Orleans.Streams.Endpoints
         public async Task SendMessage(IStreamMessage message)
         {
             await _sender.SendMessage(message);
+        }
+
+        public int FlushQueueSize { get; set; } = 512;
+
+        public void EnqueueMessageBroadcast(IStreamMessage streamMessage)
+        {
+            EnqueueMessage(streamMessage);
+        }
+
+        public void EnqueueMessage(IStreamMessage streamMessage)
+        {
+            _messages.Enqueue(streamMessage);
+            if (_messages.Count >= FlushQueueSize)
+                FlushQueue();
+        }
+
+        private void FlushQueue()
+        {
+            if (_messages.Count > 0)
+            {
+                var combinedMessage = new CombinedMessage(_messages.ToList());
+                _messages.Clear();
+                _awaitedSends.Add(SendMessage(combinedMessage));
+            }
+            //while (_messages.Count > 0)
+            //{
+            //    var message = _messages.Dequeue();
+            //    _awaitedSends.Add(SendMessage(message));
+            //}
+        }
+
+        public async Task AwaitSendingComplete()
+        {
+            FlushQueue();
+            await Task.WhenAll(_awaitedSends);
+            _awaitedSends.Clear();
         }
     }
 }

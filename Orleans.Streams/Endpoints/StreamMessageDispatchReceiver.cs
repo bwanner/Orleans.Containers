@@ -51,6 +51,17 @@ namespace Orleans.Streams.Endpoints
         /// <returns></returns>
         public async Task Visit(IStreamMessage streamMessage)
         {
+            CombinedMessage combinedMessage = streamMessage as CombinedMessage;;
+            if (combinedMessage != null)
+            {
+                foreach (var message in combinedMessage.Messages)
+                {
+                    await Visit(message);
+                }
+
+                return;
+            }
+
             List<dynamic> funcList;
             _callbacks.TryGetValue(streamMessage.GetType(), out funcList);
 
