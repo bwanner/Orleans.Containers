@@ -67,38 +67,34 @@ namespace Orleans.Streams.Endpoints
         }
 
         /// <summary>
-        /// Sends a message through all available outputs.
+        ///     Sends a message to all outputs.
         /// </summary>
-        /// <param name="message"></param>
+        /// <param name="message">Message to send.</param>
         /// <returns></returns>
-        public async Task SendMessageThroughAllOutputs(IStreamMessage message)
+        public async Task SendMessageBroadcast(IStreamMessage message)
         {
             await Task.WhenAll(Senders.Select(s => s.SendMessage(message)));
         }
 
+        /// <summary>
+        ///     Starts a new transaction.
+        /// </summary>
+        /// <param name="transactionId">Identifier.</param>
+        /// <returns></returns>
         public async Task StartTransaction(Guid transactionId)
         {
             await Task.WhenAll(Senders.Select(s => s.StartTransaction(transactionId)));
         }
 
+        /// <summary>
+        ///     Ends a transaction.
+        /// </summary>
+        /// <param name="transactionId">Identifier.</param>
+        /// <returns></returns>
         public async Task EndTransaction(Guid transactionId)
         {
             await Task.WhenAll(Senders.Select(s => s.EndTransaction(transactionId)));
         }
-
-        ///// <summary>
-        ///// Enqueue a AddItemMessage for all items.
-        ///// </summary>
-        ///// <param name="items">Items to send.</param>
-        ///// <returns></returns>
-        //public void EnqueueAddItems(IEnumerable<T> items)
-        //{
-        //    var split = Senders.SplitEquallyBetweenSenders(items);
-        //    foreach (var tuple in split)
-        //    {
-        //        tuple.Item1.EnqueueAddItems(tuple.Item2);
-        //    }
-        //}
 
         /// <summary>
         /// Get identities of the provided output streams.
@@ -133,16 +129,11 @@ namespace Orleans.Streams.Endpoints
 
         public int FlushQueueSize { get; set; } = 12;
 
-        public void EnqueueMessageForSending(IStreamMessage streamMessage)
-        {
-            //var split = Senders.SplitEquallyBetweenSenders(items);
-            //foreach (var tuple in split)
-            //{
-            //    tuple.Item1.EnqueueAddItems(tuple.Item2);
-            //}
-            throw new NotImplementedException();
-        }
-
+        /// <summary>
+        ///     Enqueues a message that is sent to all outputs once the FlushQueueSize is reached.
+        /// </summary>
+        /// <param name="message">Message to send.</param>
+        /// <returns></returns>
         public void EnqueueMessageBroadcast(IStreamMessage streamMessage)
         {
             foreach (var sender in Senders)
@@ -151,11 +142,19 @@ namespace Orleans.Streams.Endpoints
             }
         }
 
+        /// <summary>
+        /// Enqeues a message to one output once the FlushQueueSize is reached.
+        /// </summary>
+        /// <param name="streamMessage">Message to send.</param>
         public void EnqueueMessage(IStreamMessage streamMessage)
         {
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Awaits all sent messages.
+        /// </summary>
+        /// <returns></returns>
         public async Task AwaitSendingComplete()
         {
             await Task.WhenAll(Senders.Select(s => s.AwaitSendingComplete()));

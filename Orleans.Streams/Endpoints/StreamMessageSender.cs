@@ -12,11 +12,11 @@ namespace Orleans.Streams.Endpoints
     public class StreamMessageSender<T> : IStreamMessageSender<T>, IBufferingStreamMessageSender
     {
         private readonly InternalStreamMessageSender _sender;
-        private Queue<IStreamMessage> _messages;
-        private List<Task> _awaitedSends;
+        private readonly Queue<IStreamMessage> _messages;
+        private readonly List<Task> _awaitedSends;
 
         /// <summary>
-        /// Constructor.
+        ///     Constructor.
         /// </summary>
         /// <param name="provider">Provider to use for stream.</param>
         /// <param name="guid">Identifier to use for the stream. Random Guid will be generated if default.</param>
@@ -28,7 +28,7 @@ namespace Orleans.Streams.Endpoints
         }
 
         /// <summary>
-        /// Constructor.
+        ///     Constructor.
         /// </summary>
         /// <param name="provider">Provider to use for stream.</param>
         /// <param name="targetStream">Identity of the stream to create.</param>
@@ -39,42 +39,51 @@ namespace Orleans.Streams.Endpoints
             _awaitedSends = new List<Task>();
         }
 
-
-        public async Task StartTransaction(Guid transactionId)
+        /// <summary>
+        ///     Awaits all sent messages.
+        /// </summary>
+        /// <returns></returns>
+        public async Task AwaitSendingComplete()
         {
-            await SendMessage(new TransactionMessage {State = TransactionState.Start, TransactionId = transactionId});
+            FlushQueue();
+            await Task.WhenAll(_awaitedSends);
+            _awaitedSends.Clear();
         }
 
+        /// <summary>
+        ///     Enqeues a message to one output once the FlushQueueSize is reached.
+        /// </summary>
+        /// <param name="streamMessage">Message to send.</param>
+        public void EnqueueMessage(IStreamMessage streamMessage)
+        {
+            _messages.Enqueue(streamMessage);
+            if (_messages.Count >= FlushQueueSize)
+                FlushQueue();
+        }
+
+        /// <summary>
+        ///     Enqueues a message that is sent to all outputs once the FlushQueueSize is reached.
+        /// </summary>
+        /// <param name="streamMessage">Message to send.</param>
+        /// <returns></returns>
+        public void EnqueueMessageBroadcast(IStreamMessage streamMessage)
+        {
+            EnqueueMessage(streamMessage);
+        }
+
+        /// <summary>
+        ///     Minimum size that the messages are sent.
+        /// </summary>
+        public int FlushQueueSize { get; set; } = 512;
+
+        /// <summary>
+        ///     Ends a transaction.
+        /// </summary>
+        /// <param name="transactionId">Identifier.</param>
+        /// <returns></returns>
         public async Task EndTransaction(Guid transactionId)
         {
             await SendMessage(new TransactionMessage {State = TransactionState.End, TransactionId = transactionId});
-        }
-
-        /// <summary>
-        /// Get identities of the provided output streams.
-        /// </summary>
-        /// <returns></returns>
-        public async Task<IList<StreamIdentity>> GetOutputStreams()
-        {
-            return (await _sender.GetStreamIdentity()).SingleValueToList();
-        }
-
-        /// <summary>
-        /// Checks if this output stream is teared down.
-        /// </summary>
-        /// <returns></returns>
-        public Task<bool> IsTearedDown()
-        {
-            return _sender.IsTearedDown();
-        }
-
-        /// <summary>
-        /// Tears down the output stream.
-        /// </summary>
-        /// <returns></returns>
-        public Task TearDown()
-        {
-            return _sender.TearDown();
         }
 
         /// <summary>
@@ -87,18 +96,52 @@ namespace Orleans.Streams.Endpoints
             await _sender.SendMessage(message);
         }
 
-        public int FlushQueueSize { get; set; } = 512;
-
-        public void EnqueueMessageBroadcast(IStreamMessage streamMessage)
+        /// <summary>
+        ///     Sends a message to all outputs.
+        /// </summary>
+        /// <param name="message">Message to send.</param>
+        /// <returns></returns>
+        public async Task SendMessageBroadcast(IStreamMessage message)
         {
-            EnqueueMessage(streamMessage);
+            await SendMessage(message);
         }
 
-        public void EnqueueMessage(IStreamMessage streamMessage)
+
+        /// <summary>
+        ///     Starts a new transaction.
+        /// </summary>
+        /// <param name="transactionId">Identifier.</param>
+        /// <returns></returns>
+        public async Task StartTransaction(Guid transactionId)
         {
-            _messages.Enqueue(streamMessage);
-            if (_messages.Count >= FlushQueueSize)
-                FlushQueue();
+            await SendMessage(new TransactionMessage {State = TransactionState.Start, TransactionId = transactionId});
+        }
+
+        /// <summary>
+        ///     Get identities of the provided output streams.
+        /// </summary>
+        /// <returns></returns>
+        public async Task<IList<StreamIdentity>> GetOutputStreams()
+        {
+            return (await _sender.GetStreamIdentity()).SingleValueToList();
+        }
+
+        /// <summary>
+        ///     Checks if this output stream is teared down.
+        /// </summary>
+        /// <returns></returns>
+        public Task<bool> IsTearedDown()
+        {
+            return _sender.IsTearedDown();
+        }
+
+        /// <summary>
+        ///     Tears down the output stream.
+        /// </summary>
+        /// <returns></returns>
+        public Task TearDown()
+        {
+            return _sender.TearDown();
         }
 
         private void FlushQueue()
@@ -109,18 +152,6 @@ namespace Orleans.Streams.Endpoints
                 _messages.Clear();
                 _awaitedSends.Add(SendMessage(combinedMessage));
             }
-            //while (_messages.Count > 0)
-            //{
-            //    var message = _messages.Dequeue();
-            //    _awaitedSends.Add(SendMessage(message));
-            //}
-        }
-
-        public async Task AwaitSendingComplete()
-        {
-            FlushQueue();
-            await Task.WhenAll(_awaitedSends);
-            _awaitedSends.Clear();
         }
     }
 }

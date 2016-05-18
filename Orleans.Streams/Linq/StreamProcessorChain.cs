@@ -14,7 +14,7 @@ namespace Orleans.Streams.Linq
     {
         private readonly ITransactionalStreamProvider<TIn> _source;
 
-        internal StreamProcessorChainStart(IStreamProcessorAggregate<TIn, TOut> aggregate, ITransactionalStreamProvider<TIn> source, TFactory factory)
+        public StreamProcessorChainStart(IStreamProcessorAggregate<TIn, TOut> aggregate, ITransactionalStreamProvider<TIn> source, TFactory factory)
             : base(aggregate, factory)
         {
             _source = source;
@@ -37,7 +37,7 @@ namespace Orleans.Streams.Linq
         /// </summary>
         public IStreamProcessorAggregate<TIn, TOut> Aggregate { get; }
 
-        internal StreamProcessorChain(IStreamProcessorAggregate<TIn, TOut> aggregate, TFactory factory)
+        public StreamProcessorChain(IStreamProcessorAggregate<TIn, TOut> aggregate, TFactory factory)
         {
             Aggregate = aggregate;
             Factory = factory;

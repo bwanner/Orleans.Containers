@@ -37,8 +37,8 @@ namespace Orleans.Streams.Stateful.Endpoints
             base.SetupMessageDispatcher(dispatcher);
             dispatcher.Register<RemoteItemAddMessage<T>>(ProcessModelItemAddMessage);
             dispatcher.Register<RemoteItemRemoveMessage<T>>(ProcessModelItemRemoveMessage);
-            dispatcher.Register<RemoteCollectionChangedMessage>(ProcessModelCollectionChangedMessage);
-            dispatcher.Register<RemotePropertyChangedMessage>(ProcessModelPropertyChangedMessage);
+            dispatcher.Register<RemoteCollectionChangedMessage>(ProcessRemoteCollectionChangedMessage);
+            dispatcher.Register<RemotePropertyChangedMessage>(ProcessRemotePropertyChangedMessage);
         }
 
         private Task ProcessModelItemAddMessage(RemoteItemAddMessage<T> message)
@@ -63,18 +63,18 @@ namespace Orleans.Streams.Stateful.Endpoints
             return TaskDone.Done;
         }
 
-        private Task ProcessModelPropertyChangedMessage(RemotePropertyChangedMessage message)
+        private Task ProcessRemotePropertyChangedMessage(RemotePropertyChangedMessage message)
         {
             var sourceItem = message.ElementAffected.Retrieve(ReceiveContext, LocalContextAction.LookupInsertIfNotFound);
             var newValue = message.Value.Retrieve(ReceiveContext, LocalContextAction.LookupInsertIfNotFound);
-            var oldValue = message.Value.Retrieve(ReceiveContext, LocalContextAction.Delete); // Remove old value from lookup
+            var oldValue = message.OldValue.Retrieve(ReceiveContext, LocalContextAction.Delete); // Remove old value from lookup
 
             sourceItem.GetType().GetProperty(message.PropertyName).GetSetMethod(true).Invoke(sourceItem, new[] { newValue });
 
             return TaskDone.Done;
         }
 
-        private Task ProcessModelCollectionChangedMessage(RemoteCollectionChangedMessage message)
+        private Task ProcessRemoteCollectionChangedMessage(RemoteCollectionChangedMessage message)
         {
             var sourceItem = message.ElementAffected.Retrieve(ReceiveContext, LocalContextAction.LookupInsertIfNotFound);
             if (sourceItem == null)
