@@ -80,6 +80,9 @@ namespace Orleans.Streams.Stateful.Endpoints
             if (sourceItem == null)
                 throw new NullReferenceException("Matching collection cannot be retrieved");
 
+            if (message.SourceElementPropertyName != null)
+                sourceItem = sourceItem.GetType().GetProperty(message.SourceElementPropertyName).GetValue(sourceItem);
+
             var sourceList = (dynamic) sourceItem;
 
             switch (message.Action)

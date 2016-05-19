@@ -29,13 +29,10 @@ namespace Orleans.Streams.Stateful
         /// <returns>Local object.</returns>
         public T Retrieve(ILocalReceiveContext receiveContext, LocalContextAction localContextAction)
         {
-            bool itemFound = false;
-            T item = default(T);
-            if (receiveContext.GuidToLocalObjects.ContainsKey(GlobalIdentifier))
-            {
-                item = (T) receiveContext.GuidToLocalObjects[GlobalIdentifier];
-                itemFound = true;
-            }
+            object output = null;
+            bool itemFound = receiveContext.GuidToLocalObjects.TryGetValue(GlobalIdentifier, out output);
+            T item = (T) output; 
+
             switch (localContextAction)
             {
                 case LocalContextAction.LookupInsertIfNotFound:
