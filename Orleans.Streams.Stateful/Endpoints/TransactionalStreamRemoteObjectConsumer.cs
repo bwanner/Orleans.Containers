@@ -26,7 +26,10 @@ namespace Orleans.Streams.Stateful.Endpoints
         /// Constructor.
         /// </summary>
         /// <param name="streamProvider">Stream provider to be used.</param>
-        public TransactionalStreamRemoteObjectConsumer(IStreamProvider streamProvider, ILocalReceiveContext receiveContext, IList<T> items = null) : base(streamProvider)
+        /// <param name="receiveContext"></param>
+        /// <param name="tearDownFunc">Function to be executed after tear down.</param>
+        /// <param name="items"></param>
+        public TransactionalStreamRemoteObjectConsumer(IStreamProvider streamProvider, ILocalReceiveContext receiveContext, Func<Task> tearDownFunc = null, IList<T> items = null) : base(streamProvider, tearDownFunc)
         {
             Items = items ?? new List<T>();
             ReceiveContext = receiveContext;

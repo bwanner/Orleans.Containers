@@ -18,6 +18,7 @@ namespace Orleans.Streams.Endpoints
         ///     Constructor.
         /// </summary>
         /// <param name="streamProvider">Stream provider to be used.</param>
+        /// <param name="tearDownFunc">Function to be executed after tear down.</param>
         public TransactionalStreamConsumer(IStreamProvider streamProvider, Func<Task> tearDownFunc = null)
         {
             MessageDispatcher = new StreamMessageDispatchReceiver(streamProvider, null, tearDownFunc);

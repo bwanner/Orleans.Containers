@@ -67,7 +67,12 @@ namespace CollectionHost
             await simpleResultConsumer.SetInput(await queryNumbersLessThan1000.GetOutputStreams());
 
             var rand = new Random(123);
-            await simpleProvider.SendMessage(new ItemMessage<int>(Enumerable.Repeat(2000, 10000).Select(x => rand.Next(x)).ToList()));
+            List<int> numbers = Enumerable.Repeat(2000, 10000).Select(x => rand.Next(x)).ToList();
+            await simpleProvider.SendMessage(new ItemMessage<int>(numbers));
+
+            var tid = Guid.NewGuid();
+            await simpleProvider.StartTransaction(tid);
+            await simpleProvider.EndTransaction(tid);
             
             Console.WriteLine("#Items less than 1000: {0}", simpleResultConsumer.Items.Count);
         }

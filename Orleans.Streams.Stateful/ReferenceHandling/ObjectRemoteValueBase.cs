@@ -31,7 +31,7 @@ namespace Orleans.Streams.Stateful
         {
             object output = null;
             bool itemFound = receiveContext.GuidToLocalObjects.TryGetValue(GlobalIdentifier, out output);
-            T item = (T) output; 
+            T item = (output != null) ? (T) output : default(T); 
 
             switch (localContextAction)
             {
