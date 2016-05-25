@@ -28,7 +28,7 @@ namespace Orleans.Streams.Linq.Aggregates
         {
             ProcessorNodes = new List<TNode>();
 
-            var createdNodes = await Task.WhenAll(streamIdentities.Select(InitializeNode));
+            var createdNodes = await Task.WhenAll(streamIdentities.Select(InitializeNode).ToList());
             ProcessorNodes.AddRange(createdNodes);
         }
 

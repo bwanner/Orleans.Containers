@@ -11,7 +11,7 @@ namespace Orleans.Streams.Linq.Nodes
     {
         protected const string StreamProviderNamespace = "CollectionStreamProvider"; // TODO replace with config value
         protected TransactionalStreamConsumer StreamConsumer;
-        protected IStreamMessageSender<TOut> StreamSender;
+        protected StreamMessageSender<TOut> StreamSender;
 
         public async Task SubscribeToStreams(IEnumerable<StreamIdentity> inputStream)
         {
@@ -68,6 +68,8 @@ namespace Orleans.Streams.Linq.Nodes
 
         protected async Task ProcessTransactionMessage(TransactionMessage transactionMessage)
         {
+            if (transactionMessage.State == TransactionState.End)
+                await StreamSender.AwaitSendingComplete();
             // TODO: Make sure all items prior to sending the end message are processed when implementing methods not running on grain thread.
             await StreamSender.SendMessage(transactionMessage);
         }

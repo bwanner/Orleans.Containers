@@ -12,7 +12,6 @@ namespace Orleans.Streams.Endpoints
     {
         public const string StreamNamespacePrefix = "StreamMessageSender";
         private readonly IAsyncStream<IStreamMessage> _messageStream;
-        private readonly Queue<IStreamMessage> _queue;
         private readonly StreamIdentity _streamIdentity;
         private bool _tearDownExecuted;
 
@@ -22,7 +21,6 @@ namespace Orleans.Streams.Endpoints
             _streamIdentity = new StreamIdentity(guid, StreamNamespacePrefix);
             _messageStream = provider.GetStream<IStreamMessage>(_streamIdentity.Guid, _streamIdentity.Namespace);
             _tearDownExecuted = false;
-            _queue = new Queue<IStreamMessage>();
         }
 
         public InternalStreamMessageSender(IStreamProvider provider, StreamIdentity targetStream)
@@ -30,7 +28,6 @@ namespace Orleans.Streams.Endpoints
             _streamIdentity = targetStream;
             _messageStream = provider.GetStream<IStreamMessage>(_streamIdentity.Guid, _streamIdentity.Namespace);
             _tearDownExecuted = false;
-            _queue = new Queue<IStreamMessage>();
         }
 
         public Task<StreamIdentity> GetStreamIdentity()
@@ -49,23 +46,9 @@ namespace Orleans.Streams.Endpoints
             _tearDownExecuted = true;
         }
 
-        public void AddToMessageQueue(IStreamMessage message)
-        {
-            _queue.Enqueue(message);
-        }
-
         public async Task SendMessage(IStreamMessage message)
         {
             await _messageStream.OnNextAsync(message);
-        }
-
-        public async Task SendMessagesFromQueue()
-        {
-            while (_queue.Count > 0)
-            {
-                var message = _queue.Dequeue();
-                await SendMessage(message);
-            }
         }
     }
 }

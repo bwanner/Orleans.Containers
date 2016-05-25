@@ -19,6 +19,7 @@ namespace Orleans.Streams.Endpoints
         protected List<StreamMessageSender<T>> Senders;
 
         private readonly IStreamProvider _provider;
+        private int _nextSenderIndex;
 
         /// <summary>
         /// Constructor.
@@ -34,6 +35,7 @@ namespace Orleans.Streams.Endpoints
             }
 
             Senders = Enumerable.Range(0, numberOfOutputStreams).Select(i => new StreamMessageSender<T>(provider)).ToList();
+            _nextSenderIndex = 0;
         }
 
         /// <summary>
@@ -148,7 +150,8 @@ namespace Orleans.Streams.Endpoints
         /// <param name="streamMessage">Message to send.</param>
         public void EnqueueMessage(IStreamMessage streamMessage)
         {
-            throw new NotImplementedException();
+            Senders[_nextSenderIndex].EnqueueMessage(streamMessage);
+            _nextSenderIndex = (_nextSenderIndex + 1)%Senders.Count;
         }
 
         /// <summary>
