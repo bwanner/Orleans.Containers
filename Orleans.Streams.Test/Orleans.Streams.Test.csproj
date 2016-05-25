@@ -111,6 +111,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="Helpers\TransactionalStreamProvider.cs" />
+    <Compile Include="PartitionTest.cs" />
     <Compile Include="LinqTest.cs" />
     <Compile Include="StreamProcessorNodeUnitTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
