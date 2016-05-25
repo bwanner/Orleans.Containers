@@ -193,6 +193,11 @@ namespace Orleans.Collections
             return tearDownStates[0] && tearDownStates[1];
         }
 
+        public Task<IList<SiloLocationStreamIdentity>> GetOutputStreamsWithSourceLocation()
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task TearDown()
         {
             await OutputProducer.TearDown();

@@ -36,6 +36,16 @@ namespace Orleans.Streams.Linq.Nodes
             return consumerTearDownState && providerTearDownState;
         }
 
+        public async Task<IList<SiloLocationStreamIdentity>> GetOutputStreamsWithSourceLocation()
+        {
+            var outputStreams = await GetOutputStreams();
+            var siloIdentity = Enumerable.Repeat(RuntimeIdentity, outputStreams.Count);
+
+            return
+                outputStreams.Zip(siloIdentity,
+                    (streamIdentity, siloId) => new SiloLocationStreamIdentity(streamIdentity.Guid, streamIdentity.Namespace, siloId)).ToList();
+        }
+
         public virtual async Task TearDown()
         {
             if (StreamConsumer != null)

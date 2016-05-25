@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Orleans.Streams.Linq.Aggregates;
@@ -28,7 +29,8 @@ namespace Orleans.Streams
             var processorAggregate =_grainFactory.GetGrain<IStreamProcessorSelectAggregate<TIn, TOut>>(Guid.NewGuid());
             
             await processorAggregate.SetFunction(selectionFunc);
-            await processorAggregate.SetInput(configuration.InputStreams);
+            await processorAggregate.SetInput(configuration.InputStreams.Select(s => (StreamIdentity) s).ToList());
+            // TODO test cast
 
             return processorAggregate;
         }
@@ -38,7 +40,7 @@ namespace Orleans.Streams
             var processorAggregate = _grainFactory.GetGrain<IStreamProcessorWhereAggregate<TIn>>(Guid.NewGuid());
 
             await processorAggregate.SetFunction(filterFunc);
-            await processorAggregate.SetInput(configuration.InputStreams);
+            await processorAggregate.SetInput(configuration.InputStreams.Select(s => (StreamIdentity)s).ToList());
 
             return processorAggregate;
         }

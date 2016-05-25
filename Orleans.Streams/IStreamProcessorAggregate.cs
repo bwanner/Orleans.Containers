@@ -1,4 +1,7 @@
-﻿namespace Orleans.Streams
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace Orleans.Streams
 {
     /// <summary>
     ///     Transforms data from TIn to TOut using multiple IStreamProcessorNode.
@@ -8,5 +11,6 @@
     public interface IStreamProcessorAggregate<TIn, TOut> : IGrainWithGuidKey, ITransactionalStreamConsumerAggregate,
         ITransactionalStreamProvider<TOut>
     {
+        Task<IList<SiloLocationStreamIdentity>> GetOutputStreamsWithSourceLocation();
     }
 }

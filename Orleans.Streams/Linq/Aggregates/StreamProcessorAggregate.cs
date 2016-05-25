@@ -65,6 +65,14 @@ namespace Orleans.Streams.Linq.Aggregates
             return tearDownStates.All(x => x);
         }
 
+        public async Task<IList<SiloLocationStreamIdentity>> GetOutputStreamsWithSourceLocation()
+        {
+            var result = await Task.WhenAll(ProcessorNodes.Select(n => n.GetOutputStreamsWithSourceLocation()));
+
+            var resultingStreams = result.SelectMany(s => s).ToList();
+            return resultingStreams;
+        }
+
         /// <summary>
         ///     Unsubscribes from all streams this entity consumes and remove references to stream this entity produces.
         /// </summary>

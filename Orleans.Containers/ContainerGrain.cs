@@ -220,6 +220,11 @@ namespace Orleans.Collections
             return Task.FromResult(_tearDownExecuted);
         }
 
+        public Task<IList<SiloLocationStreamIdentity>> GetOutputStreamsWithSourceLocation()
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task TearDown()
         {
             await Task.WhenAll(_containers.Select(c => c.TearDown()));

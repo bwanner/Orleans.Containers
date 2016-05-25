@@ -108,6 +108,7 @@
     <Compile Include="Messages\ItemMessage.cs" />
     <Compile Include="Partitioning\IPartitionGrain.cs" />
     <Compile Include="Partitioning\ISiloContextExecutionGrain.cs" />
+    <Compile Include="Partitioning\ISiloLocalizableGrain.cs" />
     <Compile Include="Partitioning\IStreamProcessorNodeFactoryGrain.cs" />
     <Compile Include="Partitioning\PartitionGrain.cs" />
     <Compile Include="Partitioning\PartitionGrainBootstrapProvider.cs" />
@@ -124,6 +125,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>SerializableFunc.tt</DependentUpon>
     </Compile>
+    <Compile Include="SiloLocationStreamIdentity.cs" />
     <Compile Include="StreamHelper.cs" />
     <Compile Include="Endpoints\StreamMessageDispatchReceiver.cs" />
     <Compile Include="StreamProcessorAggregateConfiguration.cs" />

@@ -65,7 +65,10 @@ namespace Orleans.Collections.Test
             var testConsumer = new TransactionalStreamListConsumer<int>(provider);
             await SubscribeConsumer(processor, testConsumer);
 
+            var tid = TransactionGenerator.GenerateTransactionId();
+            await testProvider.StartTransaction(tid);
             await testProvider.SendMessage(new ItemMessage<int>(itemsToSend));
+            await testProvider.EndTransaction(tid);
 
             CollectionAssert.AreEquivalent(itemsToSend, testConsumer.Items);
 
@@ -95,7 +98,10 @@ namespace Orleans.Collections.Test
             var consumerAggregate = new TestTransactionalTransactionalStreamConsumerAggregate<int>(provider);
             await consumerAggregate.SetInput(await aggregate.GetOutputStreams());
 
+            var tid = TransactionGenerator.GenerateTransactionId();
+            await inputAggregate.StartTransaction(tid);
             await inputAggregate.SendMessage(new ItemMessage<int>(itemsToSend));
+            await inputAggregate.EndTransaction(tid);
 
             var resultItems = consumerAggregate.Items;
 

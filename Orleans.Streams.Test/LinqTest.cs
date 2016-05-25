@@ -183,7 +183,12 @@ namespace Orleans.Streams.Test
             {
                 var input = inputChunks[i];
                 var expectedOutput = outputChunks[i];
+
+                var tid = TransactionGenerator.GenerateTransactionId();
+                await source.StartTransaction(tid);
                 await source.SendMessage(new ItemMessage<TIn>(input));
+                await source.EndTransaction(tid);
+
                 resultAssertion(expectedOutput, resultConsumer.Items);
                 resultConsumer.Items.Clear();
             }
