@@ -18,6 +18,7 @@ namespace Orleans.Streams.Partitioning
         public override Task OnActivateAsync()
         {
             _tmp = RuntimeIdentity;
+            DelayDeactivation(TimeSpan.MaxValue);
             return base.OnActivateAsync();
         }
 

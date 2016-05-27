@@ -12,6 +12,7 @@ namespace Orleans.Streams.Partitioning
         public override Task OnActivateAsync()
         {
             _grains = new List<Tuple<IGrain, string>>();
+            DelayDeactivation(TimeSpan.MaxValue);
             return base.OnActivateAsync();
         }
 
