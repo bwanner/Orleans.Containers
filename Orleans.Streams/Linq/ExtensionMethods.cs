@@ -16,7 +16,7 @@ namespace Orleans.Streams.Linq
             this ITransactionalStreamProvider<TIn> source, Expression<Func<TIn, TOut>> selectionFunc,
             TFactory factory, int scatterFactor = 1) where TFactory : IStreamProcessorAggregateFactory
         {
-            var aggregateConfiguration = new StreamProcessorAggregateConfiguration(await  source.GetOutputStreams(), scatterFactor);
+            var aggregateConfiguration = new StreamProcessorAggregateConfiguration(await source.GetOutputStreams(), scatterFactor);
             var processorAggregate = await factory.CreateSelect<TIn, TOut>(selectionFunc, aggregateConfiguration);
             var processorChain = new StreamProcessorChainStart<TIn, TOut, TFactory>(processorAggregate, source, factory);
 
@@ -59,7 +59,7 @@ namespace Orleans.Streams.Linq
         public static async Task<StreamProcessorChain<TIn, TOut, TFactory>> SimpleSelectMany<TOldIn, TIn, TOut, TFactory>(
             this StreamProcessorChain<TOldIn, TIn, TFactory> previousNode, Expression<Func<TIn, IEnumerable<TOut>>> selectionFunc, int scatterFactor = 1) where TFactory : IStreamProcessorAggregateFactory
         {
-            var aggregateConfiguration = new StreamProcessorAggregateConfiguration(await previousNode.Aggregate.GetOutputStreams(), scatterFactor);
+            var aggregateConfiguration = new StreamProcessorAggregateConfiguration(await previousNode.Aggregate.GetOutputStreamsWithSourceLocation(), scatterFactor);
             var processorAggregate =
                 await previousNode.Factory.CreateSimpleSelectMany(selectionFunc, aggregateConfiguration);
             var processorChain = new StreamProcessorChain<TIn, TOut, TFactory>(processorAggregate, previousNode);
@@ -92,7 +92,7 @@ namespace Orleans.Streams.Linq
         public static async Task<StreamProcessorChain<TIn, TOut, TFactory>> SelectMany<TOldIn, TIn, TIntermediate, TOut, TFactory>(
             this StreamProcessorChain<TOldIn, TIn, TFactory> previousNode, Expression<Func<TIn, IEnumerable<TIntermediate>>> collectionSelectorFunc, Expression<Func<TIn, TIntermediate, TOut>> resultSelectorFunc, int scatterFactor = 1) where TFactory : IStreamProcessorAggregateFactory
         {
-            var aggregateConfiguration = new StreamProcessorAggregateConfiguration(await previousNode.Aggregate.GetOutputStreams(), scatterFactor);
+            var aggregateConfiguration = new StreamProcessorAggregateConfiguration(await previousNode.Aggregate.GetOutputStreamsWithSourceLocation(), scatterFactor);
             var processorAggregate =
                 await previousNode.Factory.CreateSelectMany(collectionSelectorFunc, resultSelectorFunc, aggregateConfiguration);
             var processorChain = new StreamProcessorChain<TIn, TOut, TFactory>(processorAggregate, previousNode);
@@ -124,7 +124,7 @@ namespace Orleans.Streams.Linq
         public static async Task<StreamProcessorChain<TIn, TIn, TFactory>> Where<TOldIn, TIn, TFactory>(
             this StreamProcessorChain<TOldIn, TIn, TFactory> previousNode, Expression<Func<TIn, bool>> filterFunc, int scatterFactor = 1) where TFactory : IStreamProcessorAggregateFactory
         {
-            var aggregateConfiguration = new StreamProcessorAggregateConfiguration(await previousNode.Aggregate.GetOutputStreams(), scatterFactor);
+            var aggregateConfiguration = new StreamProcessorAggregateConfiguration(await previousNode.Aggregate.GetOutputStreamsWithSourceLocation(), scatterFactor);
             var processorAggregate = await previousNode.Factory.CreateWhere(filterFunc, aggregateConfiguration);
             var processorChain = new StreamProcessorChain<TIn, TIn, TFactory>(processorAggregate, previousNode);
 

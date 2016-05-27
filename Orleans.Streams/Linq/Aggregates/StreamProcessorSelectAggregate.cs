@@ -27,13 +27,13 @@ namespace Orleans.Streams.Linq.Aggregates
         /// <summary>
         ///     Operation to create a IStreamProcessorNodeGrain of type TNode.
         /// </summary>
-        /// <param name="identity">Identity to subscribe the node to.</param>
+        /// <param name="nodeStreamPair"></param>
         /// <returns></returns>
-        protected override async Task<IStreamProcessorSelectNodeGrain<TIn, TOut>> InitializeNode(StreamIdentity identity)
+        protected override async Task<IStreamProcessorSelectNodeGrain<TIn, TOut>> InitializeNode(Tuple<IStreamProcessorSelectNodeGrain<TIn, TOut>, StreamIdentity> nodeStreamPair)
         {
-            var node = GrainFactory.GetGrain<IStreamProcessorSelectNodeGrain<TIn, TOut>>(Guid.NewGuid());
+            var node = nodeStreamPair.Item1;
             await node.SetFunction(_functionTemplate);
-            await node.SubscribeToStreams(identity.SingleValueToList());
+            await node.SubscribeToStreams(nodeStreamPair.Item2.SingleValueToList());
 
             return node;
         }

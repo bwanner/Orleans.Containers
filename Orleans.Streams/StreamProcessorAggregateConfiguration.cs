@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Orleans.Streams
 {
+    [Serializable]
     public class StreamProcessorAggregateConfiguration
     {
         public IList<SiloLocationStreamIdentity> InputStreams { get; }

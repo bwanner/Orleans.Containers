@@ -44,6 +44,10 @@ namespace Orleans.Streams
 
         public static IEnumerable<T> Repeat<T>(this IEnumerable<T> source)
         {
+            if (!source.Any())
+            {
+                throw new ArgumentException("Cannot repeat IEnumerable with no elements.");
+            }
             while (true)
             {
                 foreach (var item in source)

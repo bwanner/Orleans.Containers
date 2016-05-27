@@ -108,10 +108,10 @@
     <Compile Include="Messages\ItemMessage.cs" />
     <Compile Include="Partitioning\IPartitionGrain.cs" />
     <Compile Include="Partitioning\ISiloContextExecutionGrain.cs" />
-    <Compile Include="Partitioning\ISiloLocalizableGrain.cs" />
     <Compile Include="Partitioning\IStreamProcessorNodeFactoryGrain.cs" />
     <Compile Include="Partitioning\PartitionGrain.cs" />
     <Compile Include="Partitioning\PartitionGrainBootstrapProvider.cs" />
+    <Compile Include="Partitioning\PartitionGrainUtil.cs" />
     <Compile Include="Partitioning\SiloContextExecutionGrain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\orleans.codegen.cs" />

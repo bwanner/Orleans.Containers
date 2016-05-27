@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Streams.Partitioning;
 
 namespace Orleans.Streams.Linq.Aggregates
 {
@@ -19,6 +20,8 @@ namespace Orleans.Streams.Linq.Aggregates
         /// </summary>
         protected List<TNode> ProcessorNodes = new List<TNode>();
 
+
+
         /// <summary>
         ///     Set input source.
         /// </summary>
@@ -26,10 +29,8 @@ namespace Orleans.Streams.Linq.Aggregates
         /// <returns></returns>
         public async Task SetInput(IList<StreamIdentity> streamIdentities)
         {
-            ProcessorNodes = new List<TNode>();
-
-            var createdNodes = await Task.WhenAll(streamIdentities.Select(InitializeNode).ToList());
-            ProcessorNodes.AddRange(createdNodes);
+            var siloIdentitiesWithLocation = streamIdentities.Select(s => new SiloLocationStreamIdentity(s.Guid, s.Namespace, "")).ToList();
+            await SetInput(siloIdentitiesWithLocation);
         }
 
         /// <summary>
@@ -73,6 +74,43 @@ namespace Orleans.Streams.Linq.Aggregates
             return resultingStreams;
         }
 
+        public async Task SetInput(IList<SiloLocationStreamIdentity> streamIdentities)
+        {
+            var processorStreamPairs = await CreateProcessorNodes(streamIdentities);
+            ProcessorNodes = processorStreamPairs.Select(tuple => tuple.Item1).ToList();
+
+            var createdNodes = await Task.WhenAll(processorStreamPairs.Select(InitializeNode).ToList());
+        }
+
+        private async Task<List<Tuple<TNode, StreamIdentity>>> CreateProcessorNodes(IList<SiloLocationStreamIdentity> inputStreams)
+        {
+            var nodes = new List<Tuple<TNode, StreamIdentity>>();
+            var availableSilos = await PartitionGrainUtil.GetExecutionGrains(GrainFactory);
+
+            var silosToBeUsed = availableSilos.Repeat().Take(inputStreams.Count).ToList();
+
+            // Greedy match with fixed stream
+            foreach(var inputStream in inputStreams)
+            {
+                var localContexts = silosToBeUsed.Where(tuple => tuple.Item2 == inputStream.Silo);
+                Tuple<ISiloContextExecutionGrain, string> selectedContext = null;
+
+                selectedContext = localContexts.Any() ? localContexts.First() : silosToBeUsed[0];
+
+                var nodeGrain = (TNode) await selectedContext.Item1.ExecuteFunc(async (factory, state) =>
+                {
+                    var grain = factory.GetGrain<TNode>(Guid.NewGuid());
+                    var stream = (SiloLocationStreamIdentity) state; // TODO call setup method here? await grain.SubscribeToStreams(stream.SingleValueToList());
+                    await grain.IsTearedDown(); // Call this so the grain is activated.
+                    return grain;
+                }, inputStream);
+                    nodes.Add(new Tuple<TNode, StreamIdentity>(nodeGrain, inputStream));
+                    silosToBeUsed.Remove(selectedContext);
+            }
+
+            return nodes;
+        }
+
         /// <summary>
         ///     Unsubscribes from all streams this entity consumes and remove references to stream this entity produces.
         /// </summary>
@@ -83,10 +121,10 @@ namespace Orleans.Streams.Linq.Aggregates
         }
 
         /// <summary>
-        ///     Operation to create a IStreamProcessorNodeGrain of type TNode.
+        ///     Operation to initialize a IStreamProcessorNodeGrain of type TNode.
         /// </summary>
-        /// <param name="identity">Identity to subscribe the node to.</param>
+        /// <param name="nodeStreamPair"></param>
         /// <returns></returns>
-        protected abstract Task<TNode> InitializeNode(StreamIdentity identity);
+        protected abstract Task<TNode> InitializeNode(Tuple<TNode, StreamIdentity> nodeStreamPair);
     }
 }

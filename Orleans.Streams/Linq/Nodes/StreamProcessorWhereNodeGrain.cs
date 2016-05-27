@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Placement;
 using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Linq.Nodes
@@ -8,6 +9,7 @@ namespace Orleans.Streams.Linq.Nodes
     /// <summary>
     ///     Executes where operations on a stream and forwards results evaluating to 'true' to its output stream.
     /// </summary>
+    [PreferLocalPlacement]
     internal class StreamProcessorWhereNodeGrain<TIn> : StreamProcessorNodeGrain<TIn, TIn>, IStreamProcessorWhereNodeGrain<TIn>
     {
         private Func<TIn, bool> _function;

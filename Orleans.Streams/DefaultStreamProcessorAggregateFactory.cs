@@ -29,8 +29,7 @@ namespace Orleans.Streams
             var processorAggregate =_grainFactory.GetGrain<IStreamProcessorSelectAggregate<TIn, TOut>>(Guid.NewGuid());
             
             await processorAggregate.SetFunction(selectionFunc);
-            await processorAggregate.SetInput(configuration.InputStreams.Select(s => (StreamIdentity) s).ToList());
-            // TODO test cast
+            await processorAggregate.SetInput(configuration.InputStreams);
 
             return processorAggregate;
         }
@@ -40,7 +39,7 @@ namespace Orleans.Streams
             var processorAggregate = _grainFactory.GetGrain<IStreamProcessorWhereAggregate<TIn>>(Guid.NewGuid());
 
             await processorAggregate.SetFunction(filterFunc);
-            await processorAggregate.SetInput(configuration.InputStreams.Select(s => (StreamIdentity)s).ToList());
+            await processorAggregate.SetInput(configuration.InputStreams);
 
             return processorAggregate;
         }

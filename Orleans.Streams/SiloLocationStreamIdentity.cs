@@ -2,6 +2,7 @@
 
 namespace Orleans.Streams
 {
+    [Serializable]
     public class SiloLocationStreamIdentity : StreamIdentity
     {
         public string Silo { get; private set; }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Orleans.Streams.Partitioning;
 
 namespace Orleans.Streams.Linq.Aggregates
 {
@@ -26,13 +27,13 @@ namespace Orleans.Streams.Linq.Aggregates
         /// <summary>
         ///     Operation to create a IStreamProcessorNodeGrain of type TNode.
         /// </summary>
-        /// <param name="identity">Identity to subscribe the node to.</param>
+        /// <param name="nodeStreamPair"></param>
         /// <returns></returns>
-        protected override async Task<IStreamProcessorWhereNodeGrain<TIn>> InitializeNode(StreamIdentity identity)
+        protected override async Task<IStreamProcessorWhereNodeGrain<TIn>> InitializeNode(Tuple<IStreamProcessorWhereNodeGrain<TIn>, StreamIdentity> nodeStreamPair)
         {
-            var node = GrainFactory.GetGrain<IStreamProcessorWhereNodeGrain<TIn>>(Guid.NewGuid());
+            var node = nodeStreamPair.Item1;
             await node.SetFunction(_functionTemplate);
-            await node.SubscribeToStreams(identity.SingleValueToList());
+            await node.SubscribeToStreams(nodeStreamPair.Item2.SingleValueToList());
 
             return node;
         }

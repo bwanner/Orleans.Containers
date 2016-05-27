@@ -225,6 +225,11 @@ namespace Orleans.Collections
             throw new NotImplementedException();
         }
 
+        public Task SetInput(IList<SiloLocationStreamIdentity> streamIdentities)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task TearDown()
         {
             await Task.WhenAll(_containers.Select(c => c.TearDown()));

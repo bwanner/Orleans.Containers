@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Placement;
 using Orleans.Streams.Messages;
 
 namespace Orleans.Streams.Linq.Nodes
@@ -8,6 +9,7 @@ namespace Orleans.Streams.Linq.Nodes
     /// <summary>
     ///     Executes select operation on a stream and forwards it to its output stream.
     /// </summary>
+    [PreferLocalPlacement]
     internal class StreamProcessorSelectNodeGrain<TIn, TOut> : StreamProcessorNodeGrain<TIn, TOut>, IStreamProcessorSelectNodeGrain<TIn, TOut>
     {
         private Func<TIn, TOut> _function;

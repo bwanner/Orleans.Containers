@@ -21,15 +21,30 @@ namespace Orleans.Streams.Partitioning
             return base.OnActivateAsync();
         }
 
-        public Task Execute(Action action)
+        public Task Execute(Action<IGrainFactory> action)
         {
-            action();
+            action(GrainFactory);
             return TaskDone.Done;
         }
 
-        public Task Execute(Action<object> action, object state)
+        public Task<object> ExecuteFunc(Func<IGrainFactory, object> func)
         {
-            action(state);
+            return Task.FromResult(func(GrainFactory));
+        }
+
+        public async Task<object> ExecuteFunc(Func<IGrainFactory, Task<object>> func)
+        {
+            return await func(GrainFactory);
+        }
+
+        public async Task<object> ExecuteFunc(Func<IGrainFactory, object, Task<object>> func, object state)
+        {
+            return await func(GrainFactory, state);
+        }
+
+        public Task Execute(Action<IGrainFactory, object> action, object state)
+        {
+            action(GrainFactory, state);
             return TaskDone.Done;
         }
 

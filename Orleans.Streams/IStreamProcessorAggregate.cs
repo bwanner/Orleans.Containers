@@ -12,5 +12,7 @@ namespace Orleans.Streams
         ITransactionalStreamProvider<TOut>
     {
         Task<IList<SiloLocationStreamIdentity>> GetOutputStreamsWithSourceLocation();
+
+        Task SetInput(IList<SiloLocationStreamIdentity> streamIdentities);
     }
 }
