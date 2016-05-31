@@ -129,7 +129,7 @@ namespace Orleans.Streams.Endpoints
             return sendersTearedDown.All(tearedDown => tearedDown);
         }
 
-        public int FlushQueueSize { get; set; } = 12;
+        public int FlushQueueSize { get; set; } = 512;
 
         /// <summary>
         ///     Enqueues a message that is sent to all outputs once the FlushQueueSize is reached.

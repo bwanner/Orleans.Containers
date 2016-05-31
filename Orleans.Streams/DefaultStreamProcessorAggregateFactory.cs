@@ -44,9 +44,14 @@ namespace Orleans.Streams
             return processorAggregate;
         }
 
-        public Task<IStreamProcessorAggregate<TIn, TOut>> CreateSimpleSelectMany<TIn, TOut>(Expression<Func<TIn, IEnumerable<TOut>>> selectionFunc, StreamProcessorAggregateConfiguration configuration)
+        public async Task<IStreamProcessorAggregate<TIn, TOut>> CreateSimpleSelectMany<TIn, TOut>(Expression<Func<TIn, IEnumerable<TOut>>> selectionFunc, StreamProcessorAggregateConfiguration configuration)
         {
-            throw new NotImplementedException();
+            var processorAggregate = _grainFactory.GetGrain<IStreamProcessorSimpleSelectManyAggregate<TIn, TOut>>(Guid.NewGuid());
+
+            await processorAggregate.SetFunction(selectionFunc);
+            await processorAggregate.SetInput(configuration.InputStreams);
+
+            return processorAggregate;
         }
 
         public Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelectMany<TIn, TIntermediate, TOut>(Expression<Func<TIn, IEnumerable<TIntermediate>>> collectionSelectorFunc, Expression<Func<TIn, TIntermediate, TOut>> resultSelectorFunc, StreamProcessorAggregateConfiguration configuration)

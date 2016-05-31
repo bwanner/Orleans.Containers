@@ -61,6 +61,49 @@ namespace Orleans.Streams.Test
 
         #endregion
 
+        #region SelectMany
+
+        [TestMethod]
+        public async Task TestOneLevelSelectManyDataPass()
+        {
+            var inputChunks = new List<int>() { 5, 213, 23, -21, 23, 99 }.BatchIEnumerable(2).ToList();
+            var outputChunks = inputChunks.SelectMany(i => i).Select(i => (i > 0) ? Enumerable.Range(0, i).ToList() : i.SingleValueToList()).ToList();
+
+            var source = new StreamMessageSenderComposite<int>(_provider, 2);
+            var factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
+            var query = await source.SimpleSelectMany(i => (i > 0) ? Enumerable.Range(0, i) : i.SingleValueToList(), factory);
+
+            var queryOutputStreams = await query.GetOutputStreams();
+
+            var resultConsumer = new TestTransactionalTransactionalStreamConsumerAggregate<int>(_provider);
+            await resultConsumer.SetInput(queryOutputStreams);
+
+            Assert.AreEqual(2, queryOutputStreams.Count);
+            Assert.AreEqual(0, resultConsumer.Items.Count);
+
+            for (int i = 0; i < inputChunks.Count; i++)
+            {
+                var input = inputChunks[i];
+                var expectedOutput = new List<int>();
+                expectedOutput.AddRange(outputChunks[2*i]);
+                expectedOutput.AddRange(outputChunks[2*i+1]);
+
+                var tid = TransactionGenerator.GenerateTransactionId();
+                await source.StartTransaction(tid);
+                await source.SendMessage(new ItemMessage<int>(input));
+                await source.EndTransaction(tid);
+
+                CollectionAssert.AreEquivalent(expectedOutput, resultConsumer.Items);
+                resultConsumer.Items.Clear();
+            }
+
+            await query.TearDown();
+            await resultConsumer.TearDown();
+
+        }
+
+        #endregion
+
         #region Where
 
         [TestMethod]
