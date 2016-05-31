@@ -56,5 +56,11 @@ namespace Orleans.Streams.Stateful
         {
             _table.Add(key, value);
         }
+
+        public void OverrideValue(TKey key, TValue value)
+        {
+            _table.Remove(key);
+            Add(key, value);
+        }
     }
 }

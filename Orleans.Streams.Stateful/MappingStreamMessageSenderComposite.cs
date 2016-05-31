@@ -27,17 +27,13 @@ namespace Orleans.Streams.Stateful
         }
 
         /// <summary>
-        /// Send message containing added remote values.
+        /// Send message containing added remote value.
         /// </summary>
-        /// <param name="remoteValues">Added remote values.</param>
-        public void EnqueueAddRemoteItems(IList<IObjectRemoteValue<T>> remoteValues)
+        /// <param name="remoteValue">Added remote value.</param>
+        public void EnqueueAddRemoteItem(IObjectRemoteValue<T> remoteValue)
         {
-            var senderGrouping = remoteValues.GroupBy(GetSenderForValue);
-            foreach (var group in senderGrouping)
-            {
-                var senderMessage = new RemoteItemAddMessage<T>(group.ToList());
-                group.Key.EnqueueMessage(senderMessage);
-            }
+            var sender = GetSenderForValue(remoteValue);
+            sender.EnqueueMessage(new RemoteItemAddMessage<T>(remoteValue.SingleValueToList()));
         }
 
         /// <summary>

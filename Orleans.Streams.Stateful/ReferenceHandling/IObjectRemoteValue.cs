@@ -7,7 +7,7 @@ namespace Orleans.Streams.Stateful
     /// <summary>
     /// Manages a local object that is linked to a remote object via an identifier.
     /// </summary>
-    public interface IObjectRemoteValue<T> : IObjectRemoteValue
+    public interface IObjectRemoteValue<out T> : IObjectRemoteValue
     {
         /// <summary>
         /// Retrieve the local object.
