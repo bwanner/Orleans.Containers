@@ -123,7 +123,7 @@ namespace Orleans.Streams.Endpoints
             _tearDownExecuted = false;
             var messageStream = _streamProvider.GetStream<IStreamMessage>(streamIdentity.Guid, streamIdentity.Namespace);
 
-            _streamHandles.Add(await messageStream.SubscribeAsync((message, token) => Visit(message), async () => await TearDown()));
+            _streamHandles.Add(await messageStream.SubscribeAsync(async (message, token) => await Visit(message), async () => await TearDown()));
         }
 
         /// <summary>

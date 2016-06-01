@@ -34,7 +34,8 @@ namespace Orleans.Streams.Linq.Nodes
         protected Task ProcessItemAddMessage(ItemMessage<TIn> itemMessage)
         {
             var result = itemMessage.Items.Select(_function).ToList();
-            StreamSender.EnqueueMessage(new ItemMessage<TOut>(result));
+            if(result.Count > 0)
+                StreamSender.EnqueueMessage(new ItemMessage<TOut>(result));
             return TaskDone.Done;
         }
     }

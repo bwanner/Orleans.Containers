@@ -93,6 +93,14 @@ namespace Orleans.Streams.Endpoints
         /// <returns></returns>
         public async Task SendMessage(IStreamMessage message)
         {
+            await SendMessage(message, true);
+        }
+
+        private async Task SendMessage(IStreamMessage message, bool awaitPriorToSending)
+        {
+            if (awaitPriorToSending)
+                await AwaitSendingComplete();
+
             await _sender.SendMessage(message);
         }
 
@@ -103,7 +111,7 @@ namespace Orleans.Streams.Endpoints
         /// <returns></returns>
         public async Task SendMessageBroadcast(IStreamMessage message)
         {
-            await SendMessage(message);
+            await SendMessage(message, true);
         }
 
 
@@ -150,7 +158,7 @@ namespace Orleans.Streams.Endpoints
             {
                 var combinedMessage = new CombinedMessage(_messages.ToList());
                 _messages.Clear();
-                _awaitedSends.Add(SendMessage(combinedMessage));
+                _awaitedSends.Add(SendMessage(combinedMessage, false));
             }
         }
     }

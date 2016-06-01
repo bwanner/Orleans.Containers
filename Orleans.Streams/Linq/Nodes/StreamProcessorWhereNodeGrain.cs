@@ -31,10 +31,13 @@ namespace Orleans.Streams.Linq.Nodes
             StreamConsumer.MessageDispatcher.Register<ItemMessage<TIn>>(ProcessItemAddMessage);
         }
 
-        protected async Task ProcessItemAddMessage(ItemMessage<TIn> itemMessage)
+        protected Task ProcessItemAddMessage(ItemMessage<TIn> itemMessage)
         {
             var resultList = itemMessage.Items.Where(item => _function(item)).ToList();
-            await StreamSender.SendMessage(new ItemMessage<TIn>(resultList));
+            if(resultList.Count > 0)
+                StreamSender.EnqueueMessage(new ItemMessage<TIn>(resultList));
+
+            return TaskDone.Done;
         }
     }
 }
