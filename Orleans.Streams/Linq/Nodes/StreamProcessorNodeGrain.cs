@@ -59,6 +59,7 @@ namespace Orleans.Streams.Linq.Nodes
                 await StreamSender.TearDown();
                 StreamSender = null;
             }
+            DeactivateOnIdle();
         }
 
         public override Task OnActivateAsync()
