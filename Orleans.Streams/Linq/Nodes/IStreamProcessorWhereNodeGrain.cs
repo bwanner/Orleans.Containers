@@ -13,6 +13,6 @@ namespace Orleans.Streams
         /// </summary>
         /// <param name="function">Filter function for each item. Evaluation to 'true' will forward results to the output stream.</param>
         /// <returns></returns>
-        Task SetFunction(Func<TIn, bool> function);
+        Task SetFunction(SerializableFunc<TIn, bool> function);
     }
 }

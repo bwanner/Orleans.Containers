@@ -2,13 +2,11 @@
 
 namespace Orleans.Streams.Messages
 {
-    public interface IStreamMessage<T> : IStreamMessage
-    {
-    }
-
+    /// <summary>
+    /// Marker interface for a message passed via an Orleans stream.
+    /// </summary>
     public interface IStreamMessage
     {
-        Task Accept(IStreamMessageVisitor visitor);
     }
 
 }

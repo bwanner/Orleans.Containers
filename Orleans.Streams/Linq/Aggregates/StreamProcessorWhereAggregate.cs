@@ -1,25 +1,39 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using Orleans.Streams.Partitioning;
 
 namespace Orleans.Streams.Linq.Aggregates
 {
-    public class StreamProcessorWhereAggregate<TIn> : StreamProcessorAggregate<TIn, TIn>, IStreamProcessorWhereAggregate<TIn>
+    /// <summary>
+    ///     Supports defining a where function that is executed by using multiple IStreamProcessorWhereNodeGrain.
+    /// </summary>
+    /// <typeparam name="TIn">Data input/output type.</typeparam>
+    public class StreamProcessorWhereAggregate<TIn> : StreamProcessorAggregate<TIn, TIn, IStreamProcessorWhereNodeGrain<TIn>>,
+        IStreamProcessorWhereAggregate<TIn>
     {
-        private Func<TIn, bool> _functionTemplate;
+        private SerializableFunc<TIn, bool> _functionTemplate;
 
-        public Task SetFunction(Func<TIn, bool> function)
+        /// <summary>
+        ///     Define the where function.
+        /// </summary>
+        /// <param name="function"></param>
+        /// <returns></returns>
+        public Task SetFunction(SerializableFunc<TIn, bool> function)
         {
             _functionTemplate = function;
             return TaskDone.Done;
         }
 
-        protected override async Task<IStreamProcessorNodeGrain<TIn, TIn>> InitializeNode(StreamIdentity<TIn> identity)
+        /// <summary>
+        ///     Operation to create a IStreamProcessorNodeGrain of type TNode.
+        /// </summary>
+        /// <param name="nodeStreamPair"></param>
+        /// <returns></returns>
+        protected override async Task<IStreamProcessorWhereNodeGrain<TIn>> InitializeNode(Tuple<IStreamProcessorWhereNodeGrain<TIn>, StreamIdentity> nodeStreamPair)
         {
-            var node = GrainFactory.GetGrain<IStreamProcessorWhereNodeGrain<TIn>>(Guid.NewGuid());
+            var node = nodeStreamPair.Item1;
             await node.SetFunction(_functionTemplate);
-            await node.SetInput(identity);
+            await node.SubscribeToStreams(nodeStreamPair.Item2.SingleValueToList());
 
             return node;
         }

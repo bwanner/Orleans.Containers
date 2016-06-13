@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using Orleans.Collections.Observable;
 using Orleans.Collections.Utilities;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;
@@ -32,7 +31,7 @@ namespace Orleans.Collections.Test
             // Optional. 
             // By default, the next test class which uses TestignSiloHost will
             // cause a fresh Orleans silo environment to be created.
-            StopAllSilos();
+            StopAllSilosIfRunning();
         }
 
         private IContainerGrain<T> GetRandomDistributedCollection<T>()
@@ -50,7 +49,6 @@ namespace Orleans.Collections.Test
         }
 
         [TestMethod]
-        [Ignore]
         public async Task ExecuteLambdaIncrement()
         {
             var distributedCollection = GetRandomDistributedCollection<DummyInt>();
@@ -61,10 +59,10 @@ namespace Orleans.Collections.Test
 
             await distributedCollection.ExecuteSync(x => { x.Value += 232; });
 
-            var listConsumer = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(_provider);
-            await listConsumer.SetInput(await distributedCollection.GetStreamIdentities());
+            var listConsumer = new TransactionalStreamListConsumer<ContainerElement<DummyInt>>(_provider);
+            await listConsumer.SetInput(await distributedCollection.GetOutputStreams());
 
-            var tid = await distributedCollection.EnumerateToStream();
+            var tid = await distributedCollection.EnumerateToSubscribers();
             await listConsumer.TransactionComplete(tid);
 
             Assert.AreEqual(l.Count, listConsumer.Items.Count);
@@ -87,10 +85,10 @@ namespace Orleans.Collections.Test
             CollectionAssert.AllItemsAreNotNull(references); 
             // TODO reference sanity check: Should range form 0 to 20000
 
-            var consumer = new MultiStreamListConsumer<ContainerHostedElement<int>>(_provider);
-            await consumer.SetInput(await distributedCollection.GetStreamIdentities());
+            var consumer = new TransactionalStreamListConsumer<ContainerElement<int>>(_provider);
+            await consumer.SetInput(await distributedCollection.GetOutputStreams());
 
-            var tid = await distributedCollection.EnumerateToStream();
+            var tid = await distributedCollection.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
             CollectionAssert.AreEquivalent(l, consumer.Items.Select(x => x.Item).ToList());
@@ -106,10 +104,10 @@ namespace Orleans.Collections.Test
 
             var references = await distributedCollection.BatchAdd(l);
 
-            var consumer = new MultiStreamConsumer<ContainerHostedElement<int>>(_provider);
-            await consumer.SetInput(await distributedCollection.GetStreamIdentities());
+            var consumer = new TransactionalStreamConsumer(_provider);
+            await consumer.SetInput(await distributedCollection.GetOutputStreams());
 
-            var tid = await distributedCollection.EnumerateToStream();
+            var tid = await distributedCollection.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
             var deleteValue = (int) await distributedCollection.ExecuteSync(x => x, references.First());

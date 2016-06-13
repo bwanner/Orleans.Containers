@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Orleans.Runtime;
 using Orleans.Streams.Endpoints;
 using Orleans.Streams.Linq;
+using Orleans.Streams.Messages;
 using Orleans.Streams.Test.Helpers;
 using Orleans.TestingHost;
 
@@ -16,12 +17,14 @@ namespace Orleans.Streams.Test
     {
         private const string StreamProviderString = "CollectionStreamProvider";
         private IStreamProvider _provider;
+        private DefaultStreamProcessorAggregateFactory _factory;
 
 
         [TestInitialize]
         public void TestInitialize()
         {
             _provider = GrainClient.GetStreamProvider(StreamProviderString);
+            _factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
         }
 
         [ClassCleanup]
@@ -30,7 +33,7 @@ namespace Orleans.Streams.Test
             // Optional. 
             // By default, the next test class which uses TestignSiloHost will
             // cause a fresh Orleans silo environment to be created.
-            StopAllSilos();
+            StopAllSilosIfRunning();
         }
 
         #region Select
@@ -52,8 +55,51 @@ namespace Orleans.Streams.Test
 
             await
                 TestMultiLevelDataPass<int, int>(
-                    async (streamSource, factory) => await streamSource.Select(x => x.ToString(), factory).Select(int.Parse), 
+                    async (streamSource, factory) => await streamSource.Select(x => x.ToString(), factory).Select(s => int.Parse(s)), 
                     input, input, CollectionAssert.AreEquivalent);
+        }
+
+        #endregion
+
+        #region SelectMany
+
+        [TestMethod]
+        public async Task TestOneLevelSelectManyDataPass()
+        {
+            var inputChunks = new List<int>() { 5, 213, 23, -21, 23, 99 }.BatchIEnumerable(2).ToList();
+            var outputChunks = inputChunks.SelectMany(i => i).Select(i => (i > 0) ? Enumerable.Range(0, i).ToList() : i.SingleValueToList()).ToList();
+
+            var source = new StreamMessageSenderComposite<int>(_provider, 2);
+            var factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
+            var query = await source.SimpleSelectMany(i => (i > 0) ? Enumerable.Range(0, i) : i.SingleValueToList(), factory);
+
+            var queryOutputStreams = await query.GetOutputStreams();
+
+            var resultConsumer = new TestTransactionalTransactionalStreamConsumerAggregate<int>(_provider);
+            await resultConsumer.SetInput(queryOutputStreams);
+
+            Assert.AreEqual(2, queryOutputStreams.Count);
+            Assert.AreEqual(0, resultConsumer.Items.Count);
+
+            for (int i = 0; i < inputChunks.Count; i++)
+            {
+                var input = inputChunks[i];
+                var expectedOutput = new List<int>();
+                expectedOutput.AddRange(outputChunks[2*i]);
+                expectedOutput.AddRange(outputChunks[2*i+1]);
+
+                var tid = TransactionGenerator.GenerateTransactionId();
+                await source.StartTransaction(tid);
+                await source.SendMessage(new ItemMessage<int>(input));
+                await source.EndTransaction(tid);
+
+                CollectionAssert.AreEquivalent(expectedOutput, resultConsumer.Items);
+                resultConsumer.Items.Clear();
+            }
+
+            await query.TearDown();
+            await resultConsumer.TearDown();
+
         }
 
         #endregion
@@ -74,13 +120,21 @@ namespace Orleans.Streams.Test
         [TestMethod]
         public async Task TestTwoLevelWhere()
         {
-            var input = new List<int>() { 5, 213, 23, -21, 23, 99 }.BatchIEnumerable(2).ToList();
-            var output = new List<List<int>>() { new List<int>() { 213 }, new List<int>() { 23 }, new List<int>() { 23, 99 } };
+            var input = new List<int>() { 5, 213, 23, -21, 23, 99 };
+            var output = new List<string>() {  "213", "23", "23", "99" };
 
-            await
-                TestMultiLevelDataPass<int, int>(
-                    async (streamSource, factory) => await streamSource.Where(x => x >= 20, factory).Select(_ => _),
-                    input, output, CollectionAssert.AreEquivalent);
+            var source = new StreamMessageSenderComposite<int>(_provider, 2);
+
+            var query = await source.Where(x => x >= 20, _factory).Select(x => x.ToString());
+            var queryOutputStreams = await query.GetOutputStreams();
+
+            var resultConsumer = new TransactionalStreamListConsumer<string>(_provider);
+            await resultConsumer.SetInput(queryOutputStreams);
+
+            await source.SendMessage(new ItemMessage<int>(input));
+
+            await query.TearDown();
+            await resultConsumer.TearDown();
         }
 
         #endregion
@@ -96,12 +150,13 @@ namespace Orleans.Streams.Test
         [TestMethod]
         public async Task TestTearDownStreamBroken()
         {
-            var source = new MultiStreamProvider<int>(_provider, 2);
+            var source = new StreamMessageSenderComposite<int>(_provider, 2);
 
-            var query = await source.Select(x => x, GrainClient.GrainFactory);
-            var queryOutputStreams = await query.GetStreamIdentities();
+            var factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
+            var query = await source.Select(x => x, factory);
+            var queryOutputStreams = await query.GetOutputStreams();
 
-            var resultConsumer = new TestTransactionalStreamConsumerAggregate<int>(_provider);
+            var resultConsumer = new TestTransactionalTransactionalStreamConsumerAggregate<int>(_provider);
             await resultConsumer.SetInput(queryOutputStreams);
 
             Assert.AreEqual(2, queryOutputStreams.Count);
@@ -114,7 +169,7 @@ namespace Orleans.Streams.Test
             await resultConsumer.TearDown();
             Assert.IsTrue(await resultConsumer.AllConsumersTearDownCalled());
 
-            await source.SendItems(new List<int>() {2, 3});
+            await source.SendMessage(new ItemMessage<int>(new List<int>() {2, 3}));
 
             Assert.AreEqual(0, resultConsumer.Items.Count);
             Assert.IsTrue(await resultConsumer.AllConsumersTearDownCalled());
@@ -127,15 +182,15 @@ namespace Orleans.Streams.Test
             int numberOfStreamsPerLevel = 2;
 
 
-            var source = new MultiStreamProvider<int>(_provider, numberOfStreamsPerLevel);
+            var source = new StreamMessageSenderComposite<int>(_provider, numberOfStreamsPerLevel);
 
             var factory = new DefaultStreamProcessorAggregateFactory(GrainFactory);
-            var aggregateOne = await factory.CreateSelect(_ => _, await source.GetStreamIdentities());
-            var aggregateTwo = await factory.CreateSelect(_ => _, await aggregateOne.GetStreamIdentities());
+            var aggregateOne = await factory.CreateSelect<int, int>(_ => _, new StreamProcessorAggregateConfiguration(await source.GetOutputStreams()));
+            var aggregateTwo = await factory.CreateSelect<int, int>(_ => _, new StreamProcessorAggregateConfiguration(await aggregateOne.GetOutputStreams()));
             
 
-            var firstElement = new StreamProcessorChainStart<int,int>(aggregateOne, source, new DefaultStreamProcessorAggregateFactory(GrainFactory));
-            var query = new StreamProcessorChain<int, int>(aggregateTwo, firstElement);
+            var firstElement = new StreamProcessorChainStart<int, int, DefaultStreamProcessorAggregateFactory>(aggregateOne, source, new DefaultStreamProcessorAggregateFactory(GrainFactory));
+            var query = new StreamProcessorChain<int, int, DefaultStreamProcessorAggregateFactory>(aggregateTwo, firstElement);
 
             Assert.IsFalse(await aggregateOne.IsTearedDown());
             Assert.IsFalse(await aggregateTwo.IsTearedDown());
@@ -147,7 +202,7 @@ namespace Orleans.Streams.Test
         }
 
         private async Task TestMultiLevelDataPass<TIn, TOut>(
-            Func<MultiStreamProvider<TIn>, IStreamProcessorAggregateFactory, Task<IStreamProcessorChain<TOut>>>
+            Func<StreamMessageSenderComposite<TIn>, DefaultStreamProcessorAggregateFactory, Task<IStreamProcessorChain<TOut, DefaultStreamProcessorAggregateFactory>>>
                 createStreamProcessingChainFunc, List<List<TIn>> inputChunks, List<List<TOut>> outputChunks,
             Action<List<TOut>, List<TOut>> resultAssertion)
         {
@@ -156,12 +211,12 @@ namespace Orleans.Streams.Test
                 throw new ArgumentException();
             }
 
-            var source = new MultiStreamProvider<TIn>(_provider, 2);
+            var source = new StreamMessageSenderComposite<TIn>(_provider, 2);
 
-            var query = await createStreamProcessingChainFunc(source, new DefaultStreamProcessorAggregateFactory(GrainFactory));
-            var queryOutputStreams = await query.GetStreamIdentities();
+            var query = await createStreamProcessingChainFunc(source, _factory);
+            var queryOutputStreams = await query.GetOutputStreams();
 
-            var resultConsumer = new TestTransactionalStreamConsumerAggregate<TOut>(_provider);
+            var resultConsumer = new TestTransactionalTransactionalStreamConsumerAggregate<TOut>(_provider);
             await resultConsumer.SetInput(queryOutputStreams);
 
             Assert.AreEqual(2, queryOutputStreams.Count);
@@ -171,7 +226,12 @@ namespace Orleans.Streams.Test
             {
                 var input = inputChunks[i];
                 var expectedOutput = outputChunks[i];
-                await source.SendItems(input);
+
+                var tid = TransactionGenerator.GenerateTransactionId();
+                await source.StartTransaction(tid);
+                await source.SendMessage(new ItemMessage<TIn>(input));
+                await source.EndTransaction(tid);
+
                 resultAssertion(expectedOutput, resultConsumer.Items);
                 resultConsumer.Items.Clear();
             }

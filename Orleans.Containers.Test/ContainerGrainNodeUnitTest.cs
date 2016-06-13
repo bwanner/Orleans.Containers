@@ -5,7 +5,6 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using Orleans.Collections.Observable;
 using Orleans.Collections.Utilities;
 using Orleans.Streams;
 using Orleans.Streams.Endpoints;
@@ -25,7 +24,7 @@ namespace Orleans.Collections.Test
             // Optional. 
             // By default, the next test class which uses TestignSiloHost will
             // cause a fresh Orleans silo environment to be created.
-            StopAllSilos();
+            StopAllSilosIfRunning();
         }
 
         [TestInitialize]
@@ -63,9 +62,9 @@ namespace Orleans.Collections.Test
         public async Task TestNewContainerWriterReturnsNothing()
         {
             var container = GetRandomContainerGrain<int>();
-            var consumer = new MultiStreamListConsumer<ContainerHostedElement<int>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity<ContainerHostedElement<int>>>() { await container.GetStreamIdentity() }); ;
-            var tid = await container.EnumerateToStream();
+            var consumer = new TransactionalStreamListConsumer<ContainerElement<int>>(_provider);
+            await consumer.SetInput(await container.GetOutputStreams());
+            var tid = await container.EnumerateToSubscribers();
 
             await consumer.TransactionComplete(tid);
             Assert.AreEqual(0, consumer.Items.Count);
@@ -77,8 +76,8 @@ namespace Orleans.Collections.Test
             var l = Enumerable.Range(1, 10).ToList();
 
             var container = GetRandomContainerGrain<int>();
-            var consumer = new MultiStreamListConsumer<ContainerHostedElement<int>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity<ContainerHostedElement<int>>>() { await container.GetStreamIdentity() });
+            var consumer = new TransactionalStreamListConsumer<ContainerElement<int>>(_provider);
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var reference = await container.AddRange(l);
             
@@ -86,7 +85,7 @@ namespace Orleans.Collections.Test
             Assert.AreEqual(0, reference.First().Offset);
             Assert.AreEqual(container.GetPrimaryKey(), reference.First().ContainerId);
 
-            var tid = await container.EnumerateToStream();
+            var tid = await container.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
             CollectionAssert.AreEquivalent(l, consumer.Items.Select(x => x.Item).ToList());
@@ -98,21 +97,21 @@ namespace Orleans.Collections.Test
             var l = Enumerable.Range(1, 10).Select(x => new DummyInt(x)).ToList();
 
             var container = GetRandomContainerGrain<DummyInt>();
-            var consumer = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity<ContainerHostedElement<DummyInt>>>() { await container.GetStreamIdentity() });
+            var consumer = new TransactionalStreamListConsumer<ContainerElement<DummyInt>>(_provider);
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var references = await container.AddRange(l);
 
             // Action
             await container.ExecuteSync(x => { x.Value += 2; });
-            await container.EnumerateToStream();
+            await container.EnumerateToSubscribers();
             l.ForEach(x => x.Value += 2);
             CollectionAssert.AreEquivalent(l.Select(x => x.Value).ToList(), consumer.Items.Select(x => x.Item.Value).ToList());
             consumer.Items.Clear();
 
             // Action with state
             await container.ExecuteSync((x,s) => { x.Value += (int) s; }, 2);
-            await container.EnumerateToStream();
+            await container.EnumerateToSubscribers();
             l.ForEach(x => x.Value += 2);
             CollectionAssert.AreEquivalent(l.Select(x => x.Value).ToList(), consumer.Items.Select(x => x.Item.Value).ToList());
             consumer.Items.Clear();
@@ -142,14 +141,13 @@ namespace Orleans.Collections.Test
         }
 
         [TestMethod]
-        [Ignore]
         public async Task TestExecuteLambda()
         {
             var l = Enumerable.Range(1, 10).Select(x => new DummyInt(x)).ToList();
 
             var container = GetRandomContainerGrain<DummyInt>();
-            var consumer = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity<ContainerHostedElement<DummyInt>>>() { await container.GetStreamIdentity() });
+            var consumer = new TransactionalStreamListConsumer<ContainerElement<DummyInt>>(_provider);
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var reference = await container.AddRange(l);
 
@@ -159,7 +157,7 @@ namespace Orleans.Collections.Test
 
             var result = await container.ExecuteSync(x => x.Value += 2); // ExecuteLambda((i, o) => i.Value += 2);
 
-            var tid = await container.EnumerateToStream();
+            var tid = await container.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
             var expectedList = l.Select(x => x.Value + 2).ToList();
@@ -175,8 +173,8 @@ namespace Orleans.Collections.Test
             var l = Enumerable.Range(1, 10).Select(x => new DummyInt(x)).ToList();
 
             var container = GetRandomContainerGrain<DummyInt>();
-            var consumer = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity<ContainerHostedElement<DummyInt>>>() { await container.GetStreamIdentity()});
+            var consumer = new TransactionalStreamListConsumer<ContainerElement<DummyInt>>(_provider);
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var reference = await container.AddRange(l);
 
@@ -186,7 +184,7 @@ namespace Orleans.Collections.Test
 
             await container.ExecuteSync(x => x.Value += 2);
 
-            var tid = await container.EnumerateToStream();
+            var tid = await container.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
             var expectedList = l.Select(x => x.Value + 2).ToList();
@@ -196,14 +194,13 @@ namespace Orleans.Collections.Test
         }
 
         [TestMethod]
-        [Ignore]
         public async Task TestExecuteOnItemReference()
         {
             var item = new DummyInt(5);
 
             var container = GetRandomContainerGrain<DummyInt>();
-            var consumer = new MultiStreamListConsumer<ContainerHostedElement<DummyInt>>(_provider);
-            await consumer.SetInput(new List<StreamIdentity<ContainerHostedElement<DummyInt>>>() {await container.GetStreamIdentity()});
+            var consumer = new TransactionalStreamListConsumer<ContainerElement<DummyInt>>(_provider);
+            await consumer.SetInput(await container.GetOutputStreams());
 
             var reference = (await container.AddRange(new List<DummyInt>() {item})).First();
 
@@ -213,7 +210,7 @@ namespace Orleans.Collections.Test
 
             await container.ExecuteSync(i => { i.Value += 2; }, reference);
 
-            var tid = await container.EnumerateToStream();
+            var tid = await container.EnumerateToSubscribers();
             await consumer.TransactionComplete(tid);
 
 

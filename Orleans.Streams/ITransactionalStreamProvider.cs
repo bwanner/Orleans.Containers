@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Orleans.Streams
 {
@@ -6,12 +7,20 @@ namespace Orleans.Streams
     /// Provides a stream of data.
     /// </summary>
     /// <typeparam name="TOut">Type of data.</typeparam>
-    public interface ITransactionalStreamProvider<TOut> : ITransactionalStreamTearDown
+    public interface ITransactionalStreamProvider<TOut> : ITransactionalStreamProvider
+    {
+
+    }
+
+    /// <summary>
+    /// Provides a stream of data.
+    /// </summary>
+    public interface ITransactionalStreamProvider : ITransactionalStreamTearDown
     {
         /// <summary>
-        /// Get identity of the provided stream.
+        /// Get identities of the provided output streams.
         /// </summary>
         /// <returns></returns>
-        Task<StreamIdentity<TOut>> GetStreamIdentity();
+        Task<IList<StreamIdentity>> GetOutputStreams();
     }
 }

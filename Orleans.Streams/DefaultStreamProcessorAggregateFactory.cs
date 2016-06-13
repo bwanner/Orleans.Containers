@@ -1,47 +1,62 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Orleans.Streams.Linq.Aggregates;
 
 namespace Orleans.Streams
 {
+    /// <summary>
+    /// Default aggregate factory for stream processing using stateless processors aggregates.
+    /// </summary>
     public class DefaultStreamProcessorAggregateFactory : IStreamProcessorAggregateFactory
     {
-        private readonly IGrainFactory _factory;
+        private readonly IGrainFactory _grainFactory;
 
-        public DefaultStreamProcessorAggregateFactory(IGrainFactory factory)
+        public DefaultStreamProcessorAggregateFactory(IGrainFactory grainFactory)
         {
-            _factory = factory;
+            _grainFactory = grainFactory;
         }
 
-        public IStreamProcessorSelectAggregate<TIn, TOut> CreateSelect<TIn, TOut>()
+        public IGrainFactory GrainFactory
         {
-            return _factory.GetGrain<IStreamProcessorSelectAggregate<TIn, TOut>>(Guid.NewGuid());
+            get { return _grainFactory; }
         }
 
-        public IGrainFactory Factory
+        public async Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Expression<Func<TIn, TOut>> selectionFunc, StreamProcessorAggregateConfiguration configuration)
         {
-            get { return _factory; }
-        }
-
-        public async Task<IStreamProcessorSelectAggregate<TIn, TOut>> CreateSelect<TIn, TOut>(Func<TIn, TOut> selectionFunc, IList<StreamIdentity<TIn>> streamIdentities)
-        {
-            var processorAggregate =_factory.GetGrain<IStreamProcessorSelectAggregate<TIn, TOut>>(Guid.NewGuid());
-
+            var processorAggregate =_grainFactory.GetGrain<IStreamProcessorSelectAggregate<TIn, TOut>>(Guid.NewGuid());
+            
             await processorAggregate.SetFunction(selectionFunc);
-            await processorAggregate.SetInput(streamIdentities);
+            await processorAggregate.SetInput(configuration.InputStreams);
 
             return processorAggregate;
         }
 
-        public async Task<IStreamProcessorWhereAggregate<TIn>> CreateWhere<TIn>(Func<TIn, bool> filterFunc, IList<StreamIdentity<TIn>> streamIdentities)
+        public async Task<IStreamProcessorAggregate<TIn, TIn>> CreateWhere<TIn>(Expression<Func<TIn, bool>> filterFunc, StreamProcessorAggregateConfiguration configuration)
         {
-            var processorAggregate = _factory.GetGrain<IStreamProcessorWhereAggregate<TIn>>(Guid.NewGuid());
+            var processorAggregate = _grainFactory.GetGrain<IStreamProcessorWhereAggregate<TIn>>(Guid.NewGuid());
 
             await processorAggregate.SetFunction(filterFunc);
-            await processorAggregate.SetInput(streamIdentities);
+            await processorAggregate.SetInput(configuration.InputStreams);
 
             return processorAggregate;
+        }
+
+        public async Task<IStreamProcessorAggregate<TIn, TOut>> CreateSimpleSelectMany<TIn, TOut>(Expression<Func<TIn, IEnumerable<TOut>>> selectionFunc, StreamProcessorAggregateConfiguration configuration)
+        {
+            var processorAggregate = _grainFactory.GetGrain<IStreamProcessorSimpleSelectManyAggregate<TIn, TOut>>(Guid.NewGuid());
+
+            await processorAggregate.SetFunction(selectionFunc);
+            await processorAggregate.SetInput(configuration.InputStreams);
+
+            return processorAggregate;
+        }
+
+        public Task<IStreamProcessorAggregate<TIn, TOut>> CreateSelectMany<TIn, TIntermediate, TOut>(Expression<Func<TIn, IEnumerable<TIntermediate>>> collectionSelectorFunc, Expression<Func<TIn, TIntermediate, TOut>> resultSelectorFunc, StreamProcessorAggregateConfiguration configuration)
+        {
+            throw new NotImplementedException();
         }
     }
 }

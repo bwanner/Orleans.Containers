@@ -10,7 +10,6 @@ namespace Orleans.Collections
     {
         private const int NumberContainersStart = 1;
         private List<IContainerNodeGrain<T>> _containers;
-        private int _lastTransactionId;
         private bool _tearDownExecuted;
 
         public Task<ICollection<IBatchItemAdder<T>>> GetItemAdders()
@@ -18,17 +17,6 @@ namespace Orleans.Collections
             ICollection<IBatchItemAdder<T>> readers = _containers.Cast<IBatchItemAdder<T>>().ToList();
 
             return Task.FromResult(readers);
-        }
-
-        public async Task EnumerateItems(ICollection<IBatchItemAdder<T>> consumers)
-        {
-            if (consumers.Count == 0)
-            {
-                return;
-            }
-
-            var tasks = _containers.Select(c => c.EnumerateItems(consumers)).ToList();
-            await Task.WhenAll(tasks);
         }
 
         public async Task Clear()
@@ -51,19 +39,6 @@ namespace Orleans.Collections
             return resultTask.Sum();
         }
 
-        public async Task<bool> Remove(T item)
-        {
-            var removed = false;
-            foreach (var container in _containers)
-            {
-                removed = await container.Remove(item);
-                if (removed)
-                    break;
-            }
-
-            return removed;
-        }
-
         public async Task<bool> Remove(ContainerElementReference<T> reference)
         {
             var container = _containers.First(c => c.GetPrimaryKey().Equals(reference.ContainerId));
@@ -75,10 +50,20 @@ namespace Orleans.Collections
             return false;
         }
 
-        public async Task<int> EnumerateToStream(int batchSize)
+        public async Task<Guid> EnumerateToSubscribers(int batchSize)
         {
-            var transactionId = ++_lastTransactionId;
-            await Task.WhenAll(_containers.Select(c => c.EnumerateToStream(transactionId)));
+            var transactionId = Guid.NewGuid();
+            await Task.WhenAll(_containers.Select(c => c.EnumerateToSubscribers(transactionId)));
+
+            return transactionId;
+        }
+
+        public async Task<Guid> EnumerateToStream(params StreamIdentity[] streamIdentities)
+        {
+            var transactionId = Guid.NewGuid();
+            var assignedStreams = streamIdentities.Repeat().Take(_containers.Count);
+
+            await Task.WhenAll(assignedStreams.Zip(_containers, (identity, container) => container.EnumerateToStream(identity, transactionId)));
 
             return transactionId;
         }
@@ -203,7 +188,7 @@ namespace Orleans.Collections
             return await container.ExecuteSync(func, reference);
         }
 
-        public async Task SetInput(IEnumerable<StreamIdentity<T>> streamIdentities)
+        public async Task SetInput(IList<StreamIdentity> streamIdentities)
         {
             _tearDownExecuted = false;
             if (streamIdentities.Count() != _containers.Count)
@@ -213,25 +198,36 @@ namespace Orleans.Collections
 
             await
                 Task.WhenAll(_containers.Zip(streamIdentities,
-                    (grain, identity) => new Tuple<IContainerNodeGrain<T>, StreamIdentity<T>>(grain, identity))
-                    .Select(t => t.Item1.SetInput(t.Item2)));
+                    (grain, identity) => new Tuple<IContainerNodeGrain<T>, StreamIdentity>(grain, identity))
+                    .Select(t => t.Item1.SubscribeToStreams(t.Item2.SingleValueToList())));
         }
 
-        public async Task TransactionComplete(int transactionId)
+        public async Task TransactionComplete(Guid transactionId)
         {
             await Task.WhenAll(_containers.Select(c => c.TransactionComplete(transactionId)));
         }
 
-        public async Task<IList<StreamIdentity<ContainerHostedElement<T>>>> GetStreamIdentities()
+        public async Task<IList<StreamIdentity>> GetOutputStreams()
         {
-            var streamTasks = await Task.WhenAll(_containers.Select(c => c.GetStreamIdentity()));
+            var streamTasks = await Task.WhenAll(_containers.Select(c => c.GetOutputStreams()));
 
-            return new List<StreamIdentity<ContainerHostedElement<T>>>(streamTasks);
+            var resultingStreams = streamTasks.SelectMany(s => s).ToList();
+            return resultingStreams;
         }
 
         public Task<bool> IsTearedDown()
         {
             return Task.FromResult(_tearDownExecuted);
+        }
+
+        public Task<IList<SiloLocationStreamIdentity>> GetOutputStreamsWithSourceLocation()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task SetInput(IList<SiloLocationStreamIdentity> streamIdentities)
+        {
+            throw new NotImplementedException();
         }
 
         public async Task TearDown()
@@ -242,7 +238,6 @@ namespace Orleans.Collections
         public override async Task OnActivateAsync()
         {
             _containers = new List<IContainerNodeGrain<T>>();
-            _lastTransactionId = -1;
             await SetNumberOfNodes(NumberContainersStart);
             await base.OnActivateAsync();
         }

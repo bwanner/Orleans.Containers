@@ -24,6 +24,6 @@ namespace TestGrains
             return Value.ToString();
         }
 
-        public int Value { get; set; }
+        public virtual int Value { get; set; }
     }
 }

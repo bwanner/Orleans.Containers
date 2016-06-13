@@ -3,28 +3,37 @@
 namespace Orleans.Collections
 {
     [Serializable]
-    public class ContainerElementReference<T>
+    public class ContainerElementReference<T> : ContainerElementAddress<T>
     {
         private readonly IElementExecutor<T> _executorGrainReference;
 
-        [NonSerialized]
-        private readonly IElementExecutor<T> _executorReference;
-
-        public Guid ContainerId { get; private set; }
-        public int Offset { get; private set; }
+        [NonSerialized] private readonly IElementExecutor<T> _executorReference;
 
         public IElementExecutor<T> Executor => _executorReference ?? _executorGrainReference;
-        public bool Exists { get; }
-
 
         public ContainerElementReference(Guid containerId, int offset, IElementExecutor<T> executorReference,
-            IElementExecutor<T> executorGrainReference, bool exists = true)
+            IElementExecutor<T> executorGrainReference) : base(containerId, offset)
         {
-            ContainerId = containerId;
-            Offset = offset;
             _executorReference = executorReference;
             _executorGrainReference = executorGrainReference;
-            Exists = exists;
+        }
+
+        protected bool Equals(ContainerElementReference<T> other)
+        {
+            return base.Equals(other);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != this.GetType()) return false;
+            return Equals((ContainerElementReference<T>) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
     }
 }

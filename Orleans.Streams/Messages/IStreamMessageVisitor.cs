@@ -2,13 +2,16 @@
 
 namespace Orleans.Streams.Messages
 {
-    public interface IStreamMessageVisitor<T> : IStreamMessageVisitor
-    {
-        Task Visit(ItemMessage<T> message);
-    }
-
+    /// <summary>
+    /// Processes a IStreamMessage.
+    /// </summary>
     public interface IStreamMessageVisitor
     {
-        Task Visit(TransactionMessage transactionMessage);
+        /// <summary>
+        /// Process the stream message.
+        /// </summary>
+        /// <param name="streamMessage">Message to process.</param>
+        /// <returns></returns>
+        Task Visit(IStreamMessage streamMessage);
     }
 }
